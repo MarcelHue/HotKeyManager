@@ -107,7 +107,9 @@ public class HotkeyManagerService
         if (hotkey != null)
         {
             hotkey.IsEnabled = !hotkey.IsEnabled;
-            SaveAndNotify();
+            _configService.Configuration.Hotkeys = _hotkeys.ToList();
+            _ = _configService.SaveAsync();
+            // Kein HotkeysChanged - UI aktualisiert sich via INotifyPropertyChanged-Binding
         }
     }
 

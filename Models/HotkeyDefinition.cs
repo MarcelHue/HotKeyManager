@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace HotKeyManager.Models;
 
 /// <summary>
@@ -13,13 +15,28 @@ public enum WindowTargetMode
     SendToBackground
 }
 
-public class HotkeyDefinition
+public class HotkeyDefinition : INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public int VirtualKeyCode { get; set; }
     public ModifierKeys Modifiers { get; set; } = ModifierKeys.None;
-    public bool IsEnabled { get; set; } = true;
+
+    private bool _isEnabled = true;
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled != value)
+            {
+                _isEnabled = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+            }
+        }
+    }
     public ActionBase? Action { get; set; }
     
     /// <summary>Fenster-Targeting Modus.</summary>

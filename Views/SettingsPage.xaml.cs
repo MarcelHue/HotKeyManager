@@ -10,53 +10,53 @@ namespace HotKeyManager.Views;
 
 public sealed partial class SettingsPage : Page
 {
-    private bool _isLoading = true;
-    
     public SettingsPage()
     {
         this.InitializeComponent();
         LoadSettings();
     }
-    
+
     private void LoadSettings()
     {
+        AutoStartToggle.Toggled -= AutoStartToggle_Toggled;
+        MinimizeToTrayToggle.Toggled -= MinimizeToTrayToggle_Toggled;
+        StartMinimizedToggle.Toggled -= StartMinimizedToggle_Toggled;
+
         var settings = App.Current.ConfigurationService.Configuration.Settings;
-        
         AutoStartToggle.IsOn = App.Current.AutoStartService.IsAutoStartEnabled;
         MinimizeToTrayToggle.IsOn = settings.MinimizeToTray;
         StartMinimizedToggle.IsOn = settings.StartMinimized;
 
-        _isLoading = false;
+        AutoStartToggle.Toggled += AutoStartToggle_Toggled;
+        MinimizeToTrayToggle.Toggled += MinimizeToTrayToggle_Toggled;
+        StartMinimizedToggle.Toggled += StartMinimizedToggle_Toggled;
     }
-    
+
     private async void SaveSettings()
     {
-        if (_isLoading) return;
         await App.Current.ConfigurationService.SaveAsync();
     }
-    
+
     private void AutoStartToggle_Toggled(object sender, RoutedEventArgs e)
     {
-        if (_isLoading) return;
-        
         var success = App.Current.AutoStartService.SetAutoStart(AutoStartToggle.IsOn);
         if (!success)
         {
-            _isLoading = true;
+            AutoStartToggle.Toggled -= AutoStartToggle_Toggled;
             AutoStartToggle.IsOn = !AutoStartToggle.IsOn;
-            _isLoading = false;
+            AutoStartToggle.Toggled += AutoStartToggle_Toggled;
         }
-        
+
         App.Current.ConfigurationService.Configuration.Settings.RunAtStartup = AutoStartToggle.IsOn;
         SaveSettings();
     }
-    
+
     private void MinimizeToTrayToggle_Toggled(object sender, RoutedEventArgs e)
     {
         App.Current.ConfigurationService.Configuration.Settings.MinimizeToTray = MinimizeToTrayToggle.IsOn;
         SaveSettings();
     }
-    
+
     private void StartMinimizedToggle_Toggled(object sender, RoutedEventArgs e)
     {
         App.Current.ConfigurationService.Configuration.Settings.StartMinimized = StartMinimizedToggle.IsOn;
