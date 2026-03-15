@@ -180,6 +180,50 @@
                 </StackPanel>
             </Border>
             
+            <!-- Kernel-Mode Treiber -->
+            <Border Background="{StaticResource SurfaceBrush}"
+                    CornerRadius="12"
+                    Padding="24">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Kernel-Mode Treiber"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+
+                    <InfoBar x:Name="DriverStatusInfoBar"
+                             IsOpen="True"
+                             IsClosable="False"
+                             Severity="Informational"
+                             Title="Treiber-Status"
+                             Message="Wird geprüft..." />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Interception-Treiber"
+                                       FontSize="15"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Ermöglicht Kernel-Mode Tasteninjektion ohne LLKHF_INJECTED Flag"
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button x:Name="InstallDriverButton"
+                                Grid.Column="1"
+                                Click="InstallDriver_Click"
+                                Padding="16,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon x:Name="InstallDriverIcon" Glyph="&#xE9F5;" FontSize="14" />
+                                <TextBlock x:Name="InstallDriverButtonText" Text="Installieren" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- About -->
             <Border Background="{StaticResource SurfaceBrush}" 
                     CornerRadius="12" 
