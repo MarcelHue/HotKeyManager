@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using HotKeyManager.Models;
-using HotKeyManager.Services;
 using System.Text.Json;
 using Windows.Storage.Pickers;
 using Windows.Storage;
@@ -26,50 +25,8 @@ public sealed partial class SettingsPage : Page
         AutoStartToggle.IsOn = App.Current.AutoStartService.IsAutoStartEnabled;
         MinimizeToTrayToggle.IsOn = settings.MinimizeToTray;
         StartMinimizedToggle.IsOn = settings.StartMinimized;
-        
-        UpdateDriverStatus();
-        
+
         _isLoading = false;
-    }
-    
-    private void UpdateDriverStatus()
-    {
-        var isInstalled = InterceptionService.IsDriverInstalled();
-        var isActive = InterceptionService.IsDriverActive();
-        
-        if (isInstalled && isActive)
-        {
-            // Treiber installiert UND aktiv
-            DriverStatusIcon.Glyph = "\uE73E"; // Checkmark
-            DriverStatusIcon.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-            DriverStatusText.Text = "Aktiv";
-            InstallDriverButtonText.Text = "Treiber deinstallieren";
-            DriverInfoBar.Severity = InfoBarSeverity.Success;
-            DriverInfoBar.Title = "Treiber aktiv";
-            DriverInfoBar.Message = "Der Interception-Treiber ist installiert und aktiv. Kernel-Mode Interception ist verfügbar.";
-        }
-        else if (isInstalled && !isActive)
-        {
-            // Treiber installiert aber NICHT aktiv (Neustart erforderlich)
-            DriverStatusIcon.Glyph = "\uE7BA"; // Warning
-            DriverStatusIcon.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Orange);
-            DriverStatusText.Text = "Neustart erforderlich";
-            InstallDriverButtonText.Text = "Treiber deinstallieren";
-            DriverInfoBar.Severity = InfoBarSeverity.Warning;
-            DriverInfoBar.Title = "Neustart erforderlich";
-            DriverInfoBar.Message = "Der Treiber ist installiert, aber noch nicht aktiv. Bitte starte den Computer neu, um die Kernel-Mode Interception zu aktivieren.";
-        }
-        else
-        {
-            // Treiber nicht installiert
-            DriverStatusIcon.Glyph = "\uE711"; // Cancel/X
-            DriverStatusIcon.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.IndianRed);
-            DriverStatusText.Text = "Nicht installiert";
-            InstallDriverButtonText.Text = "Treiber installieren";
-            DriverInfoBar.Severity = InfoBarSeverity.Informational;
-            DriverInfoBar.Title = "Hinweis";
-            DriverInfoBar.Message = "Die Installation erfordert Administrator-Rechte. Nach der Installation ist ein Neustart des Computers erforderlich.";
-        }
     }
     
     private async void SaveSettings()
@@ -186,108 +143,6 @@ public sealed partial class SettingsPage : Page
             LoadSettings();
             
             await ShowMessage("Zurückgesetzt", "Alle Daten wurden gelöscht.");
-        }
-    }
-    
-    private async void InstallDriver_Click(object sender, RoutedEventArgs e)
-    {
-        var isInstalled = InterceptionService.IsDriverInstalled();
-        
-        if (isInstalled)
-        {
-            // Deinstallieren
-            var confirmDialog = new ContentDialog
-            {
-                XamlRoot = this.XamlRoot,
-                Title = "Treiber deinstallieren?",
-                Content = "Der Interception-Treiber wird deinstalliert. Nach der Deinstallation ist ein Neustart erforderlich. Hotkeys mit Kernel-Mode Interception funktionieren dann nicht mehr.",
-                PrimaryButtonText = "Deinstallieren",
-                CloseButtonText = "Abbrechen",
-                DefaultButton = ContentDialogButton.Close
-            };
-            
-            var result = await confirmDialog.ShowAsync();
-            if (result != ContentDialogResult.Primary) return;
-            
-            InstallDriverButton.IsEnabled = false;
-            InstallDriverButtonText.Text = "Wird deinstalliert...";
-            
-            var (success, message) = await InterceptionService.UninstallDriverAsync();
-            
-            InstallDriverButton.IsEnabled = true;
-            UpdateDriverStatus();
-            UpdateMainWindowDriverStatus();
-            
-            if (success)
-            {
-                await ShowRestartMessage("Treiber deinstalliert", message);
-            }
-            else
-            {
-                await ShowMessage("Fehler", message);
-            }
-        }
-        else
-        {
-            // Installieren
-            var confirmDialog = new ContentDialog
-            {
-                XamlRoot = this.XamlRoot,
-                Title = "Treiber installieren?",
-                Content = "Der Interception-Treiber wird installiert. Dies erfordert Administrator-Rechte. Nach der Installation ist ein Neustart des Computers erforderlich.",
-                PrimaryButtonText = "Installieren",
-                CloseButtonText = "Abbrechen",
-                DefaultButton = ContentDialogButton.Primary
-            };
-            
-            var result = await confirmDialog.ShowAsync();
-            if (result != ContentDialogResult.Primary) return;
-            
-            InstallDriverButton.IsEnabled = false;
-            InstallDriverButtonText.Text = "Wird installiert...";
-            
-            var (success, message) = await InterceptionService.InstallDriverAsync();
-            
-            InstallDriverButton.IsEnabled = true;
-            UpdateDriverStatus();
-            UpdateMainWindowDriverStatus();
-            
-            if (success)
-            {
-                await ShowRestartMessage("Treiber installiert", message);
-            }
-            else
-            {
-                await ShowMessage("Fehler", message);
-            }
-        }
-    }
-    
-    private void UpdateMainWindowDriverStatus()
-    {
-        if (App.Current.MainWindow is MainWindow mainWindow)
-        {
-            mainWindow.UpdateDriverStatus();
-        }
-    }
-    
-    private async Task ShowRestartMessage(string title, string message)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            Title = title,
-            Content = message + "\n\nMöchtest du den Computer jetzt neu starten?",
-            PrimaryButtonText = "Jetzt neu starten",
-            CloseButtonText = "Später",
-            DefaultButton = ContentDialogButton.Close
-        };
-        
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            // System neu starten
-            System.Diagnostics.Process.Start("shutdown", "/r /t 0");
         }
     }
     

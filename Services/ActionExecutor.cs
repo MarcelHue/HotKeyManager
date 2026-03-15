@@ -10,6 +10,14 @@ namespace HotKeyManager.Services;
 public class ActionExecutor
 {
     private readonly HttpClient _httpClient = new();
+    private readonly InterceptionService? _interceptionService;
+
+    public ActionExecutor() { }
+
+    public ActionExecutor(InterceptionService interceptionService)
+    {
+        _interceptionService = interceptionService;
+    }
     
     [DllImport("user32.dll")]
     private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
@@ -77,6 +85,10 @@ public class ActionExecutor
                 if (windowMode == WindowTargetMode.SendToBackground)
                 {
                     await ExecuteKeySequenceToWindowAsync(keySequence, targetProcessName, targetWindowTitle);
+                }
+                else if (keySequence.UseKernelInjection && _interceptionService?.CanSendKernel == true)
+                {
+                    await ExecuteKeySequenceKernelAsync(keySequence);
                 }
                 else
                 {
@@ -170,6 +182,62 @@ public class ActionExecutor
         }
     }
     
+    /// <summary>
+    /// Sendet eine Tastensequenz über den Kernel-Treiber (kein LLKHF_INJECTED-Flag).
+    /// Wird von Apps erkannt, die synthetische Tastatureingaben filtern.
+    /// </summary>
+    private async Task ExecuteKeySequenceKernelAsync(KeySequenceAction action)
+    {
+        const int VK_CONTROL = 0x11;
+        const int VK_ALT = 0x12;
+        const int VK_SHIFT = 0x10;
+        const int VK_LWIN = 0x5B;
+
+        foreach (var keyStroke in action.Keys)
+        {
+            switch (keyStroke.EventType)
+            {
+                case KeyEventType.KeyPress:
+                    // Modifier-Tasten drücken
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Control))
+                        _interceptionService!.KernelSimulateKeyDown(VK_CONTROL);
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Alt))
+                        _interceptionService!.KernelSimulateKeyDown(VK_ALT);
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Shift))
+                        _interceptionService!.KernelSimulateKeyDown(VK_SHIFT);
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Windows))
+                        _interceptionService!.KernelSimulateKeyDown(VK_LWIN);
+
+                    // Taste drücken und loslassen
+                    _interceptionService!.KernelSimulateKeyPress(keyStroke.VirtualKeyCode, 10);
+
+                    // Modifier-Tasten loslassen
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Windows))
+                        _interceptionService!.KernelSimulateKeyUp(VK_LWIN);
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Shift))
+                        _interceptionService!.KernelSimulateKeyUp(VK_SHIFT);
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Alt))
+                        _interceptionService!.KernelSimulateKeyUp(VK_ALT);
+                    if (keyStroke.Modifiers.HasFlag(Models.ModifierKeys.Control))
+                        _interceptionService!.KernelSimulateKeyUp(VK_CONTROL);
+                    break;
+
+                case KeyEventType.KeyDown:
+                    _interceptionService!.KernelSimulateKeyDown(keyStroke.VirtualKeyCode);
+                    break;
+
+                case KeyEventType.KeyUp:
+                    _interceptionService!.KernelSimulateKeyUp(keyStroke.VirtualKeyCode);
+                    break;
+            }
+
+            if (keyStroke.DelayAfterMs > 0)
+            {
+                await Task.Delay(keyStroke.DelayAfterMs);
+            }
+        }
+    }
+
     /// <summary>
     /// Sendet eine Tastensequenz an ein bestimmtes Fenster (auch im Hintergrund).
     /// </summary>

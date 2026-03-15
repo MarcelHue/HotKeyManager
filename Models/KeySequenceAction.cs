@@ -5,8 +5,14 @@ public class KeySequenceAction : ActionBase
     public override ActionType Type => ActionType.KeySequence;
     public override string DisplayName => "Tastensequenz";
     public override string Description => $"{Keys.Count} Tasten";
-    
+
     public List<KeyStroke> Keys { get; set; } = new();
+
+    /// <summary>
+    /// Wenn true, werden Tasten über den Kernel-Mode Treiber injiziert (kein LLKHF_INJECTED-Flag).
+    /// Notwendig für Apps die synthetische Tastatureingaben filtern (z.B. via keyboard-Library).
+    /// </summary>
+    public bool UseKernelInjection { get; set; } = false;
 }
 
 public class KeyStroke

@@ -24,7 +24,7 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
     private bool _isCapturingKeyStroke;
     private bool _isAdvancedMode;
     private bool _isRecording;
-    private bool _useKernelInterception;
+    private bool _useKernelInjection;
     private bool _isCapturingWindow;
     private WindowTargetMode _windowMode = WindowTargetMode.None;
     private KeyboardHookService? _keyboardHook;
@@ -74,10 +74,7 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
         NameTextBox.Text = hotkey.Name;
         _capturedKeyCode = hotkey.VirtualKeyCode;
         _capturedModifiers = hotkey.Modifiers;
-        _useKernelInterception = hotkey.UseKernelInterception;
-        KernelInterceptionCheckBox.IsChecked = hotkey.UseKernelInterception;
         UpdateHotkeyDisplay();
-        UpdateKernelInterceptionWarning();
         
         // Window Targeting laden
         _windowMode = hotkey.WindowMode;
@@ -116,6 +113,9 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
                     _isAdvancedMode = true;
                     AdvancedModeCheckBox.IsChecked = true;
                 }
+                _useKernelInjection = keySeq.UseKernelInjection;
+                KernelInjectionCheckBox.IsChecked = keySeq.UseKernelInjection;
+                UpdateKernelInjectionWarning();
                 foreach (var stroke in keySeq.Keys)
                 {
                     _keyStrokes.Add(stroke);
@@ -231,34 +231,15 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
         HotkeyDisplayText.Text = string.Join(" + ", parts);
     }
 
-    private void KernelInterception_Changed(object sender, RoutedEventArgs e)
+    private void KernelInjection_Changed(object sender, RoutedEventArgs e)
     {
-        _useKernelInterception = KernelInterceptionCheckBox.IsChecked ?? false;
-        UpdateKernelInterceptionWarning();
+        _useKernelInjection = KernelInjectionCheckBox.IsChecked ?? false;
+        UpdateKernelInjectionWarning();
     }
 
-    private void UpdateKernelInterceptionWarning()
+    private void UpdateKernelInjectionWarning()
     {
-        // Warnung anzeigen, wenn Kernel-Interception aktiviert ist aber Treiber nicht aktiv
-        if (_useKernelInterception && !InterceptionService.IsDriverActive())
-        {
-            KernelInterceptionWarning.IsOpen = true;
-            // Unterschiedliche Meldung je nachdem ob installiert aber nicht aktiv, oder gar nicht installiert
-            if (InterceptionService.IsDriverInstalled())
-            {
-                KernelInterceptionWarning.Title = "Neustart erforderlich";
-                KernelInterceptionWarning.Message = "Der Treiber ist installiert, aber noch nicht aktiv. Bitte starte den Computer neu.";
-            }
-            else
-            {
-                KernelInterceptionWarning.Title = "Treiber nicht installiert";
-                KernelInterceptionWarning.Message = "Der Interception-Treiber ist nicht installiert. Bitte installiere ihn in den Einstellungen.";
-            }
-        }
-        else
-        {
-            KernelInterceptionWarning.IsOpen = false;
-        }
+        KernelInjectionWarning.IsOpen = _useKernelInjection && !InterceptionService.IsDriverActive();
     }
 
     private void ActionType_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -594,7 +575,6 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
             VirtualKeyCode = _capturedKeyCode,
             Modifiers = _capturedModifiers,
             IsEnabled = true,
-            UseKernelInterception = _useKernelInterception,
             WindowMode = _windowMode,
             TargetProcessName = string.IsNullOrWhiteSpace(TargetProcessNameTextBox.Text) ? null : TargetProcessNameTextBox.Text.Trim(),
             TargetWindowTitle = string.IsNullOrWhiteSpace(TargetWindowTitleTextBox.Text) ? null : TargetWindowTitleTextBox.Text.Trim(),
@@ -643,7 +623,8 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
 
         return new KeySequenceAction
         {
-            Keys = _keyStrokes.ToList()
+            Keys = _keyStrokes.ToList(),
+            UseKernelInjection = _useKernelInjection
         };
     }
 

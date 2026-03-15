@@ -1,10 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using Microsoft.UI;
 using HotKeyManager.Helpers;
-using HotKeyManager.Services;
 using HotKeyManager.Views;
 using WinRT.Interop;
 
@@ -28,30 +26,6 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(HotkeyListPage));
         UpdateNavSelection("Hotkeys");
         
-        // Update driver status
-        UpdateDriverStatus();
-    }
-    
-    /// <summary>
-    /// Aktualisiert die Treiber-Status-Anzeige.
-    /// </summary>
-    public void UpdateDriverStatus()
-    {
-        if (InterceptionService.IsDriverActive())
-        {
-            DriverStatusIndicator.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 74, 222, 128)); // Gruen
-            DriverStatusText.Text = "Aktiv";
-        }
-        else if (InterceptionService.IsDriverInstalled())
-        {
-            DriverStatusIndicator.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 251, 191, 36)); // Orange
-            DriverStatusText.Text = "Neustart nötig";
-        }
-        else
-        {
-            DriverStatusIndicator.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 107, 114, 128)); // Grau
-            DriverStatusText.Text = "Nicht installiert";
-        }
     }
 
     private void SetupWindow()

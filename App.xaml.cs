@@ -19,7 +19,7 @@ public partial class App : Application
     public KeyboardHookService KeyboardHookService { get; } = new();
     public InterceptionService InterceptionService { get; } = new();
     public HotkeyManagerService HotkeyManagerService { get; private set; } = null!;
-    public ActionExecutor ActionExecutor { get; } = new();
+    public ActionExecutor ActionExecutor { get; private set; } = null!;
     public AutoStartService AutoStartService { get; } = new();
 
     public App()
@@ -53,7 +53,8 @@ public partial class App : Application
         }
         
         // Initialize services
-        HotkeyManagerService = new HotkeyManagerService(KeyboardHookService, InterceptionService, ActionExecutor, ConfigurationService);
+        ActionExecutor = new ActionExecutor(InterceptionService);
+        HotkeyManagerService = new HotkeyManagerService(KeyboardHookService, ActionExecutor, ConfigurationService);
 
         _mainWindow = new MainWindow();
         _mainWindow.Activate();

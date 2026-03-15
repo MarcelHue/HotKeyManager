@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Marce/AppData/Local/Programs/Lingo V6 Client/**)",
+      "Read(//c/Users/Marce/AppData/Local/Programs/Lingo V6 Client/_internal/**)",
+      "Bash(cat:*)",
+      "Read(//c/Users/Marce/AppData/Roaming/Lingo-V6-Client/**)",
+      "Bash(/dev/null find:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

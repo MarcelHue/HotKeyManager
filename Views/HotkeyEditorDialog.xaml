@@ -73,18 +73,6 @@
                     </Button>
                 </Grid>
                 
-                <!-- Kernel-Mode Interception Option -->
-                <CheckBox x:Name="KernelInterceptionCheckBox" 
-                          Content="Kernel-Mode Interception (für Remote Desktop)"
-                          Checked="KernelInterception_Changed"
-                          Unchecked="KernelInterception_Changed"
-                          Margin="0,8,0,0" />
-                <InfoBar x:Name="KernelInterceptionWarning"
-                         Severity="Warning"
-                         Title="Treiber nicht installiert"
-                         Message="Der Interception-Treiber ist nicht installiert. Bitte installiere ihn in den Einstellungen."
-                         IsOpen="False"
-                         IsClosable="False" />
             </StackPanel>
             
             <!-- Window Targeting Options -->
@@ -175,10 +163,20 @@
             <!-- Key Sequence Configuration -->
             <StackPanel x:Name="KeySequenceConfig" Spacing="12" Visibility="Collapsed">
                 <!-- Mode Toggle -->
-                <CheckBox x:Name="AdvancedModeCheckBox" 
+                <CheckBox x:Name="AdvancedModeCheckBox"
                           Content="Erweiterter Modus (separate KeyDown/KeyUp für Kombinationen)"
                           Checked="AdvancedMode_Changed"
                           Unchecked="AdvancedMode_Changed" />
+                <CheckBox x:Name="KernelInjectionCheckBox"
+                          Content="Kernel-Mode Injektion (für Apps die synthetische Tasten filtern)"
+                          Checked="KernelInjection_Changed"
+                          Unchecked="KernelInjection_Changed" />
+                <InfoBar x:Name="KernelInjectionWarning"
+                         Severity="Warning"
+                         Title="Treiber nicht aktiv"
+                         Message="Der Interception-Treiber ist nicht aktiv. Kernel-Mode Injektion ist nicht verfügbar."
+                         IsOpen="False"
+                         IsClosable="False" />
                 
                 <StackPanel Spacing="8">
                     <!-- Header mit Buttons -->

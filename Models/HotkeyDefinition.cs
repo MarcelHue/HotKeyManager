@@ -20,7 +20,6 @@ public class HotkeyDefinition
     public int VirtualKeyCode { get; set; }
     public ModifierKeys Modifiers { get; set; } = ModifierKeys.None;
     public bool IsEnabled { get; set; } = true;
-    public bool UseKernelInterception { get; set; } = false;
     public ActionBase? Action { get; set; }
     
     /// <summary>Fenster-Targeting Modus.</summary>

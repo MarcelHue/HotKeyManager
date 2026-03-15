@@ -80,15 +80,6 @@
                                     <TextBlock x:Name="StatusText" Text="Aktiv" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
                                 </StackPanel>
                             </StackPanel>
-                            
-                            <!-- Driver Status -->
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Kernel-Treiber" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Ellipse x:Name="DriverStatusIndicator" Width="8" Height="8" Fill="#6B7280" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="DriverStatusText" Text="Nicht installiert" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
-                                </StackPanel>
-                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <TextBlock Text="Version 1.0.0" 
