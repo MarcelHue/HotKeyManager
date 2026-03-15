@@ -1,0 +1,11 @@
+{
+    "files.exclude": {
+        "**/bin": false,
+        "**/obj": true,
+        "**/.vs": true
+    },
+    "editor.formatOnSave": true,
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.enableEditorConfigSupport": true,
+    "dotnet.defaultSolution": "HotKeyManager.csproj"
+}

@@ -1,0 +1,163 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build (Debug)",
+            "type": "process",
+            "command": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
+            "args": [
+                "HotKeyManager.csproj",
+                "/p:Configuration=Debug",
+                "/p:Platform=x64",
+                "/t:Build",
+                "/v:minimal"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Build (Release)",
+            "type": "process",
+            "command": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
+            "args": [
+                "HotKeyManager.csproj",
+                "/p:Configuration=Release",
+                "/p:Platform=x64",
+                "/t:Build",
+                "/v:minimal"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Rebuild (Debug)",
+            "type": "process",
+            "command": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
+            "args": [
+                "HotKeyManager.csproj",
+                "/p:Configuration=Debug",
+                "/p:Platform=x64",
+                "/t:Rebuild",
+                "/v:minimal"
+            ],
+            "group": "build",
+            "dependsOn": "Restore",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Restore",
+            "type": "process",
+            "command": "dotnet",
+            "args": ["restore"],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Clean",
+            "type": "process",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy", "Bypass",
+                "-Command",
+                "Remove-Item -Recurse -Force bin, obj, publish -ErrorAction SilentlyContinue; Write-Host 'Bereinigung abgeschlossen!' -ForegroundColor Green"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Publish (Release)",
+            "type": "process",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}\\scripts\\publish.ps1",
+                "-Platform", "x64"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Publish (Self-Contained)",
+            "type": "process",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}\\scripts\\publish.ps1",
+                "-Platform", "x64",
+                "-SelfContained"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Run Application",
+            "type": "process",
+            "command": "${workspaceFolder}\\bin\\x64\\Debug\\net9.0-windows10.0.22621.0\\HotKeyManager.exe",
+            "args": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "dependsOn": "Build (Debug)",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            }
+        }
+    ]
+}

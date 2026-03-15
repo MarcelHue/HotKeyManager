@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "HotKeyManager (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "HotKeyManager (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
