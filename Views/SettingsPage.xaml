@@ -94,6 +94,43 @@
                 </StackPanel>
             </Border>
             
+            <!-- Logging -->
+            <Border Background="{StaticResource SurfaceBrush}" 
+                    CornerRadius="12" 
+                    Padding="24">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Logging" 
+                               FontSize="18" 
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Log-Level" 
+                                       FontSize="15"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Bestimmt, welche Meldungen in die Log-Datei geschrieben werden" 
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ComboBox x:Name="LogLevelComboBox" 
+                                  Grid.Column="1"
+                                  Width="150"
+                                  SelectionChanged="LogLevelComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Debug" Tag="Debug" />
+                            <ComboBoxItem Content="Info" Tag="Info" />
+                            <ComboBoxItem Content="Warnung" Tag="Warning" />
+                            <ComboBoxItem Content="Fehler" Tag="Error" />
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
             <!-- Data Management -->
             <Border Background="{StaticResource SurfaceBrush}" 
                     CornerRadius="12" 

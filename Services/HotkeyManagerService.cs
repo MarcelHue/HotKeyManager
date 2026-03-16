@@ -40,6 +40,7 @@ public class HotkeyManagerService
             if (!ShouldExecuteHotkey(matchingHotkey))
                 return;
 
+            App.Current.LogService.Debug($"Hotkey matched: {matchingHotkey.Name} (VK={e.VirtualKeyCode}, Modifiers={e.Modifiers})");
             e.Handled = true;
             _ = ExecuteHotkeyAsync(matchingHotkey);
         }
@@ -64,7 +65,7 @@ public class HotkeyManagerService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error executing hotkey action: {ex.Message}");
+            App.Current.LogService.Error($"Fehler beim Ausfuehren der Hotkey-Aktion '{hotkey.Name}'", ex);
         }
     }
 

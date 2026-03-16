@@ -15,6 +15,7 @@ public partial class App : Application
     public DispatcherQueue DispatcherQueue => _mainWindow?.DispatcherQueue!;
 
     // Services
+    public LogService LogService { get; } = new();
     public ConfigurationService ConfigurationService { get; } = new();
     public KeyboardHookService KeyboardHookService { get; } = new();
     public InterceptionService InterceptionService { get; } = new();
@@ -37,7 +38,10 @@ public partial class App : Application
             {
                 InputInterceptor.InstallDriver();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogService.Error("Treiber-Installation via CLI fehlgeschlagen", ex);
+            }
             Environment.Exit(0);
             return;
         }
@@ -47,7 +51,10 @@ public partial class App : Application
             {
                 InputInterceptor.UninstallDriver();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogService.Error("Treiber-Deinstallation via CLI fehlgeschlagen", ex);
+            }
             Environment.Exit(0);
             return;
         }
@@ -69,6 +76,8 @@ public partial class App : Application
     private async Task LoadConfigurationAsync()
     {
         await ConfigurationService.LoadAsync();
+        LogService.MinLogLevel = LogService.ParseLogLevel(
+            ConfigurationService.Configuration.Settings.LogLevel);
         HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
         KeyboardHookService.Start();
         
@@ -152,6 +161,7 @@ public partial class App : Application
         KeyboardHookService.Stop();
         InterceptionService.Stop();
         InterceptionService.Dispose();
+        LogService.Dispose();
         _trayIconService?.Dispose();
         _mainWindow?.Close();
         Environment.Exit(0);

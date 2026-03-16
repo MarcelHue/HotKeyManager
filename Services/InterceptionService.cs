@@ -19,7 +19,11 @@ public class InterceptionService : IDisposable
     public static bool IsDriverInstalled()
     {
         try { return InputInterceptor.CheckDriverInstalled(); }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Warning("Fehler bei Treiber-Status Pruefung", ex);
+            return false;
+        }
     }
 
     /// <summary>
@@ -32,7 +36,11 @@ public class InterceptionService : IDisposable
             if (!IsDriverInstalled()) return false;
             return InputInterceptor.Initialize();
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Warning("Fehler bei Treiber-Aktivitaetspruefung", ex);
+            return false;
+        }
     }
 
     /// <summary>
@@ -57,7 +65,11 @@ public class InterceptionService : IDisposable
             if (process != null) { await process.WaitForExitAsync(); return true; }
             return false;
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Warning("Admin-Prozess konnte nicht gestartet werden", ex);
+            return false;
+        }
     }
 
     public static async Task<(bool Success, string Message)> InstallDriverAsync()
@@ -67,7 +79,11 @@ public class InterceptionService : IDisposable
             if (IsDriverInstalled()) return (true, "Treiber ist bereits installiert.");
 
             if (IsRunningAsAdmin())
-                await Task.Run(() => { try { InputInterceptor.InstallDriver(); } catch { } });
+                await Task.Run(() =>
+                {
+                    try { InputInterceptor.InstallDriver(); }
+                    catch (Exception ex) { App.Current.LogService.Error("Treiber-Installation fehlgeschlagen", ex); }
+                });
             else if (!await RunInstallAsAdminAsync(install: true))
                 return (false, "Installation abgebrochen. Administrator-Rechte wurden verweigert.");
 
@@ -75,7 +91,11 @@ public class InterceptionService : IDisposable
                 ? (true, "Treiber wurde installiert. Bitte starte den Computer neu.")
                 : (false, "Installation fehlgeschlagen. Der Treiber wurde nicht korrekt registriert.");
         }
-        catch (Exception ex) { return (false, $"Fehler bei der Treiber-Installation: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error("Treiber-Installation Fehler", ex);
+            return (false, $"Fehler bei der Treiber-Installation: {ex.Message}");
+        }
     }
 
     public static async Task<(bool Success, string Message)> UninstallDriverAsync()
@@ -85,7 +105,11 @@ public class InterceptionService : IDisposable
             if (!IsDriverInstalled()) return (true, "Treiber ist nicht installiert.");
 
             if (IsRunningAsAdmin())
-                await Task.Run(() => { try { InputInterceptor.UninstallDriver(); } catch { } });
+                await Task.Run(() =>
+                {
+                    try { InputInterceptor.UninstallDriver(); }
+                    catch (Exception ex) { App.Current.LogService.Error("Treiber-Deinstallation fehlgeschlagen", ex); }
+                });
             else if (!await RunInstallAsAdminAsync(install: false))
                 return (false, "Deinstallation abgebrochen. Administrator-Rechte wurden verweigert.");
 
@@ -93,7 +117,11 @@ public class InterceptionService : IDisposable
                 ? (true, "Treiber wurde deinstalliert. Bitte starte den Computer neu.")
                 : (false, "Deinstallation fehlgeschlagen. Der Treiber ist noch registriert.");
         }
-        catch (Exception ex) { return (false, $"Fehler bei der Treiber-Deinstallation: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error("Treiber-Deinstallation Fehler", ex);
+            return (false, $"Fehler bei der Treiber-Deinstallation: {ex.Message}");
+        }
     }
 
     public static bool IsRunningAsAdmin()
@@ -104,7 +132,11 @@ public class InterceptionService : IDisposable
             return new System.Security.Principal.WindowsPrincipal(identity)
                 .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Warning("Admin-Status konnte nicht geprueft werden", ex);
+            return false;
+        }
     }
 
     /// <summary>
@@ -119,9 +151,14 @@ public class InterceptionService : IDisposable
         {
             _keyboardHook = new KeyboardHook(PassThrough);
             _isRunning = true;
+            App.Current.LogService.Info("Interception-Kernel-Service gestartet");
             return true;
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error("Interception-Kernel-Service konnte nicht gestartet werden", ex);
+            return false;
+        }
     }
 
     private static void PassThrough(ref KeyStroke keyStroke) { }

@@ -103,7 +103,19 @@
         
         <!-- Main Content Area -->
         <Grid Grid.Column="1">
-            <Frame x:Name="ContentFrame" />
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <InfoBar x:Name="ErrorInfoBar"
+                     Grid.Row="0"
+                     IsOpen="False"
+                     IsClosable="True"
+                     Severity="Error"
+                     Margin="8,8,8,0" />
+            
+            <Frame x:Name="ContentFrame" Grid.Row="1" />
         </Grid>
     </Grid>
 </Window>

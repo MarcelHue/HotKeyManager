@@ -14,6 +14,7 @@ public sealed partial class MainWindow : Window
 {
     private AppWindow? _appWindow;
     private DispatcherTimer? _statusTimer;
+    private DispatcherTimer? _infoDismissTimer;
 
     private static readonly SolidColorBrush GreenBrush = new(Windows.UI.Color.FromArgb(255, 74, 222, 128));
     private static readonly SolidColorBrush YellowBrush = new(Windows.UI.Color.FromArgb(255, 250, 204, 21));
@@ -32,6 +33,7 @@ public sealed partial class MainWindow : Window
         UpdateNavSelection("Hotkeys");
         
         StartStatusTimer();
+        SubscribeToLogErrors();
     }
 
     private void SetupWindow()
@@ -112,6 +114,32 @@ public sealed partial class MainWindow : Window
         _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _statusTimer.Tick += (_, _) => UpdateStatusDisplay();
         _statusTimer.Start();
+    }
+
+    private void SubscribeToLogErrors()
+    {
+        App.Current.LogService.ErrorOccurred += OnLogError;
+    }
+
+    private void OnLogError(object? sender, Services.LogMessageEventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            ErrorInfoBar.Severity = e.Level == Services.LogLevel.Error
+                ? Microsoft.UI.Xaml.Controls.InfoBarSeverity.Error
+                : Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning;
+            ErrorInfoBar.Message = e.Message;
+            ErrorInfoBar.IsOpen = true;
+
+            _infoDismissTimer?.Stop();
+            _infoDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _infoDismissTimer.Tick += (_, _) =>
+            {
+                ErrorInfoBar.IsOpen = false;
+                _infoDismissTimer.Stop();
+            };
+            _infoDismissTimer.Start();
+        });
     }
 
     public void UpdateStatusDisplay()

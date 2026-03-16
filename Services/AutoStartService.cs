@@ -17,8 +17,9 @@ public class AutoStartService
                 var value = key?.GetValue(AppName);
                 return value != null;
             }
-            catch
+            catch (Exception ex)
             {
+                App.Current.LogService.Warning("AutoStart-Status konnte nicht gelesen werden", ex);
                 return false;
             }
         }
@@ -49,7 +50,7 @@ public class AutoStartService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"AutoStart error: {ex.Message}");
+            App.Current.LogService.Warning("AutoStart-Einstellung konnte nicht gespeichert werden", ex);
             return false;
         }
     }

@@ -69,10 +69,13 @@ public class KeyboardHookService : IDisposable
         
         if (_hookId == IntPtr.Zero)
         {
-            throw new InvalidOperationException($"Failed to set keyboard hook. Error: {Marshal.GetLastWin32Error()}");
+            var error = Marshal.GetLastWin32Error();
+            App.Current.LogService.Error($"Keyboard-Hook konnte nicht gesetzt werden (Win32-Error: {error})");
+            throw new InvalidOperationException($"Failed to set keyboard hook. Error: {error}");
         }
         
         _isRunning = true;
+        App.Current.LogService.Info("Keyboard-Hook gestartet");
     }
     
     public void Stop()

@@ -29,15 +29,27 @@ public sealed partial class SettingsPage : Page
         AutoStartToggle.Toggled -= AutoStartToggle_Toggled;
         MinimizeToTrayToggle.Toggled -= MinimizeToTrayToggle_Toggled;
         StartMinimizedToggle.Toggled -= StartMinimizedToggle_Toggled;
+        LogLevelComboBox.SelectionChanged -= LogLevelComboBox_SelectionChanged;
 
         var settings = App.Current.ConfigurationService.Configuration.Settings;
         AutoStartToggle.IsOn = App.Current.AutoStartService.IsAutoStartEnabled;
         MinimizeToTrayToggle.IsOn = settings.MinimizeToTray;
         StartMinimizedToggle.IsOn = settings.StartMinimized;
 
+        var logLevelIndex = settings.LogLevel?.ToLowerInvariant() switch
+        {
+            "debug" => 0,
+            "info" => 1,
+            "warning" => 2,
+            "error" => 3,
+            _ => 2
+        };
+        LogLevelComboBox.SelectedIndex = logLevelIndex;
+
         AutoStartToggle.Toggled += AutoStartToggle_Toggled;
         MinimizeToTrayToggle.Toggled += MinimizeToTrayToggle_Toggled;
         StartMinimizedToggle.Toggled += StartMinimizedToggle_Toggled;
+        LogLevelComboBox.SelectionChanged += LogLevelComboBox_SelectionChanged;
     }
 
     private void UpdateDriverStatus()
@@ -142,6 +154,16 @@ public sealed partial class SettingsPage : Page
     {
         App.Current.ConfigurationService.Configuration.Settings.StartMinimized = StartMinimizedToggle.IsOn;
         SaveSettings();
+    }
+
+    private void LogLevelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (LogLevelComboBox.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+        {
+            App.Current.ConfigurationService.Configuration.Settings.LogLevel = tag;
+            App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(tag);
+            SaveSettings();
+        }
     }
     
     private async void ExportConfig_Click(object sender, RoutedEventArgs e)

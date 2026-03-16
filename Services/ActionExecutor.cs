@@ -76,6 +76,7 @@ public class ActionExecutor
     /// <param name="targetWindowTitle">Zielfenster-Titel Pattern (fuer SendToBackground).</param>
     public async Task ExecuteAsync(ActionBase action, WindowTargetMode windowMode, string? targetProcessName, string? targetWindowTitle)
     {
+        App.Current.LogService.Info($"Aktion ausfuehren: {action.GetType().Name}, WindowMode={windowMode}");
         switch (action)
         {
             case WebhookAction webhook:
@@ -149,7 +150,7 @@ public class ActionExecutor
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Webhook error: {ex.Message}");
+            App.Current.LogService.Error("Webhook-Fehler", ex);
         }
     }
     
@@ -247,7 +248,7 @@ public class ActionExecutor
         var hwnd = WindowHelper.FindWindowByProcessAndTitle(processName, titlePattern);
         if (hwnd == IntPtr.Zero)
         {
-            Debug.WriteLine($"Zielfenster nicht gefunden: Process={processName}, Title={titlePattern}");
+            App.Current.LogService.Warning($"Zielfenster nicht gefunden: Process={processName}, Title={titlePattern}");
             return;
         }
         
@@ -368,7 +369,7 @@ public class ActionExecutor
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Process start error: {ex.Message}");
+            App.Current.LogService.Error("Fehler beim Starten des Prozesses", ex);
         }
     }
     
@@ -399,7 +400,7 @@ public class ActionExecutor
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Batch command error: {ex.Message}");
+            App.Current.LogService.Error("Batch-Befehl Fehler", ex);
         }
     }
     
@@ -442,7 +443,7 @@ public class ActionExecutor
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"SendText error: {ex.Message}");
+            App.Current.LogService.Error("SendText-Fehler", ex);
         }
     }
     
@@ -458,7 +459,7 @@ public class ActionExecutor
         var hwnd = WindowHelper.FindWindowByProcessAndTitle(processName, titlePattern);
         if (hwnd == IntPtr.Zero)
         {
-            Debug.WriteLine($"Zielfenster nicht gefunden: Process={processName}, Title={titlePattern}");
+            App.Current.LogService.Warning($"Zielfenster nicht gefunden: Process={processName}, Title={titlePattern}");
             return;
         }
         
@@ -475,7 +476,7 @@ public class ActionExecutor
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"SendTextToWindow error: {ex.Message}");
+            App.Current.LogService.Error("SendTextToWindow-Fehler", ex);
         }
     }
 }
