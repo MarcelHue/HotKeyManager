@@ -26,6 +26,27 @@ public partial class App : Application
     public App()
     {
         this.InitializeComponent();
+
+        this.UnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+    }
+
+    private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        LogService.Fatal("Unbehandelte UI-Exception", e.Exception);
+        e.Handled = true;
+    }
+
+    private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+    {
+        LogService.Fatal("Unbehandelte AppDomain-Exception", e.ExceptionObject as Exception);
+    }
+
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        LogService.Fatal("Unbeobachtete Task-Exception", e.Exception?.InnerException ?? e.Exception);
+        e.SetObserved();
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -75,23 +96,30 @@ public partial class App : Application
 
     private async Task LoadConfigurationAsync()
     {
-        await ConfigurationService.LoadAsync();
-        LogService.MinLogLevel = LogService.ParseLogLevel(
-            ConfigurationService.Configuration.Settings.LogLevel);
-        HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
-        KeyboardHookService.Start();
-        
-        // Interception-Service starten, falls Treiber aktiv ist
-        if (InterceptionService.IsDriverActive())
+        try
         {
-            InterceptionService.Start();
+            await ConfigurationService.LoadAsync();
+            LogService.MinLogLevel = LogService.ParseLogLevel(
+                ConfigurationService.Configuration.Settings.LogLevel);
+            HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
+            KeyboardHookService.Start();
+            
+            // Interception-Service starten, falls Treiber aktiv ist
+            if (InterceptionService.IsDriverActive())
+            {
+                InterceptionService.Start();
+            }
+            
+            // Statusanzeige im MainWindow aktualisieren
+            (_mainWindow as MainWindow)?.UpdateStatusDisplay();
+            
+            // Automatische Treiber-Erkennung
+            await CheckAndPromptDriverInstallAsync();
         }
-        
-        // Statusanzeige im MainWindow aktualisieren
-        (_mainWindow as MainWindow)?.UpdateStatusDisplay();
-        
-        // Automatische Treiber-Erkennung
-        await CheckAndPromptDriverInstallAsync();
+        catch (Exception ex)
+        {
+            LogService.Fatal("Kritischer Fehler beim Laden der Konfiguration", ex);
+        }
     }
 
     private async Task CheckAndPromptDriverInstallAsync()

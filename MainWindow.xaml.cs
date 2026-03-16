@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using Microsoft.UI;
+using Microsoft.Win32;
 using HotKeyManager.Helpers;
 using HotKeyManager.Services;
 using HotKeyManager.Views;
@@ -14,6 +15,7 @@ public sealed partial class MainWindow : Window
 {
     private AppWindow? _appWindow;
     private DispatcherTimer? _statusTimer;
+    private DispatcherTimer? _hookReinstallTimer;
     private DispatcherTimer? _infoDismissTimer;
 
     private static readonly SolidColorBrush GreenBrush = new(Windows.UI.Color.FromArgb(255, 74, 222, 128));
@@ -33,6 +35,8 @@ public sealed partial class MainWindow : Window
         UpdateNavSelection("Hotkeys");
         
         StartStatusTimer();
+        StartHookReinstallTimer();
+        SubscribeToSystemEvents();
         SubscribeToLogErrors();
     }
 
@@ -114,6 +118,40 @@ public sealed partial class MainWindow : Window
         _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _statusTimer.Tick += (_, _) => UpdateStatusDisplay();
         _statusTimer.Start();
+    }
+
+    private void StartHookReinstallTimer()
+    {
+        _hookReinstallTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        _hookReinstallTimer.Tick += (_, _) =>
+        {
+            App.Current.KeyboardHookService.Reinstall();
+        };
+        _hookReinstallTimer.Start();
+    }
+
+    private void SubscribeToSystemEvents()
+    {
+        SystemEvents.SessionSwitch += OnSessionSwitch;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+    }
+
+    private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
+    {
+        if (e.Reason == SessionSwitchReason.SessionUnlock)
+        {
+            App.Current.LogService.Info("Session entsperrt - Hook wird reinstalliert");
+            DispatcherQueue.TryEnqueue(() => App.Current.KeyboardHookService.Reinstall());
+        }
+    }
+
+    private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume)
+        {
+            App.Current.LogService.Info("System aus Standby aufgewacht - Hook wird reinstalliert");
+            DispatcherQueue.TryEnqueue(() => App.Current.KeyboardHookService.Reinstall());
+        }
     }
 
     private void SubscribeToLogErrors()

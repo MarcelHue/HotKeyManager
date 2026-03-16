@@ -59,6 +59,28 @@ public class LogService : IDisposable
     public void Warning(string message, Exception? ex = null) => Log(LogLevel.Warning, message, ex);
     public void Error(string message, Exception? ex = null) => Log(LogLevel.Error, message, ex);
 
+    /// <summary>
+    /// Synchroner Schreibvorgang fuer fatale Crashes. Umgeht den async-Writer und schreibt
+    /// direkt in die Datei, da bei einem Crash der async-Write nicht mehr abgeschlossen wird.
+    /// </summary>
+    public void Fatal(string message, Exception? ex = null)
+    {
+        try
+        {
+            var fullMessage = ex != null
+                ? $"{message}: {ex.Message}\n{ex.StackTrace}"
+                : message;
+            var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [FATAL] {fullMessage}";
+
+            Directory.CreateDirectory(LogFolder);
+            File.AppendAllText(LogPath, line + Environment.NewLine);
+        }
+        catch
+        {
+            // Absoluter Notfall - nichts mehr zu tun
+        }
+    }
+
     private async Task WriteLineAsync(string line)
     {
         try
