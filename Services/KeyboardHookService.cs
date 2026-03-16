@@ -49,6 +49,7 @@ public class KeyboardHookService : IDisposable
     public event EventHandler<KeyEventArgs>? KeyPressed;
     public event EventHandler<KeyEventArgs>? KeyReleased;
     
+    public bool IsRunning => _isRunning;
     public bool IsCapturing { get; set; }
     
     /// <summary>

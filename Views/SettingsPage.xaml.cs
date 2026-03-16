@@ -1,19 +1,27 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using HotKeyManager.Models;
+using HotKeyManager.Services;
 using System.Text.Json;
 using Windows.Storage.Pickers;
 using Windows.Storage;
+using Windows.UI;
 using WinRT.Interop;
 
 namespace HotKeyManager.Views;
 
 public sealed partial class SettingsPage : Page
 {
+    private static readonly SolidColorBrush GreenBrush = new(Color.FromArgb(255, 74, 222, 128));
+    private static readonly SolidColorBrush YellowBrush = new(Color.FromArgb(255, 250, 204, 21));
+    private static readonly SolidColorBrush RedBrush = new(Color.FromArgb(255, 239, 68, 68));
+
     public SettingsPage()
     {
         this.InitializeComponent();
         LoadSettings();
+        UpdateDriverStatus();
     }
 
     private void LoadSettings()
@@ -30,6 +38,79 @@ public sealed partial class SettingsPage : Page
         AutoStartToggle.Toggled += AutoStartToggle_Toggled;
         MinimizeToTrayToggle.Toggled += MinimizeToTrayToggle_Toggled;
         StartMinimizedToggle.Toggled += StartMinimizedToggle_Toggled;
+    }
+
+    private void UpdateDriverStatus()
+    {
+        var installed = InterceptionService.IsDriverInstalled();
+        var active = installed && InterceptionService.IsDriverActive();
+
+        if (active)
+        {
+            DriverStatusDot.Fill = GreenBrush;
+            DriverStatusLabel.Text = "Aktiv";
+            DriverActionIcon.Glyph = "\uE74D";
+            DriverActionText.Text = "Deinstallieren";
+            DriverActionButton.Background = new SolidColorBrush(Color.FromArgb(255, 127, 29, 29));
+        }
+        else if (installed)
+        {
+            DriverStatusDot.Fill = YellowBrush;
+            DriverStatusLabel.Text = "Installiert (Neustart noetig)";
+            DriverActionIcon.Glyph = "\uE74D";
+            DriverActionText.Text = "Deinstallieren";
+            DriverActionButton.Background = new SolidColorBrush(Color.FromArgb(255, 127, 29, 29));
+        }
+        else
+        {
+            DriverStatusDot.Fill = RedBrush;
+            DriverStatusLabel.Text = "Nicht installiert";
+            DriverActionIcon.Glyph = "\uE896";
+            DriverActionText.Text = "Installieren";
+            DriverActionButton.Background = null;
+        }
+    }
+
+    private async void DriverAction_Click(object sender, RoutedEventArgs e)
+    {
+        var installed = InterceptionService.IsDriverInstalled();
+
+        if (installed)
+        {
+            var confirm = new ContentDialog
+            {
+                XamlRoot = this.XamlRoot,
+                Title = "Treiber deinstallieren?",
+                Content = "Der Interception-Treiber wird deinstalliert. Kernel-Mode Tastatur-Injektion ist danach nicht mehr verfuegbar.",
+                PrimaryButtonText = "Deinstallieren",
+                CloseButtonText = "Abbrechen",
+                DefaultButton = ContentDialogButton.Close
+            };
+
+            if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
+            DriverActionButton.IsEnabled = false;
+            var (success, message) = await InterceptionService.UninstallDriverAsync();
+            DriverActionButton.IsEnabled = true;
+
+            await ShowMessage(success ? "Deinstallation erfolgreich" : "Deinstallation fehlgeschlagen", message);
+        }
+        else
+        {
+            DriverActionButton.IsEnabled = false;
+            var (success, message) = await InterceptionService.InstallDriverAsync();
+            DriverActionButton.IsEnabled = true;
+
+            if (success && InterceptionService.IsDriverActive())
+            {
+                App.Current.InterceptionService.Start();
+            }
+
+            await ShowMessage(success ? "Installation erfolgreich" : "Installation fehlgeschlagen", message);
+        }
+
+        UpdateDriverStatus();
+        (App.Current.MainWindow as MainWindow)?.UpdateStatusDisplay();
     }
 
     private async void SaveSettings()

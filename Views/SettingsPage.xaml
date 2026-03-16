@@ -180,6 +180,53 @@
                 </StackPanel>
             </Border>
             
+            <!-- Kernel-Mode Driver -->
+            <Border Background="{StaticResource SurfaceBrush}" 
+                    CornerRadius="12" 
+                    Padding="24">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Kernel-Mode Treiber" 
+                               FontSize="18" 
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Der Interception-Treiber ermoeglicht Kernel-Mode Tastatur-Injektion (Tasten ohne LLKHF_INJECTED-Flag senden)." 
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Treiber-Status" 
+                                       FontSize="15"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Ellipse x:Name="DriverStatusDot" Width="8" Height="8" Fill="#EF4444" VerticalAlignment="Center" />
+                                <TextBlock x:Name="DriverStatusLabel" 
+                                           Text="Nicht installiert" 
+                                           FontSize="13"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <Button x:Name="DriverActionButton" 
+                                Grid.Column="1" 
+                                Click="DriverAction_Click"
+                                Padding="16,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon x:Name="DriverActionIcon" Glyph="&#xE896;" FontSize="14" />
+                                <TextBlock x:Name="DriverActionText" Text="Installieren" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
             <!-- About -->
             <Border Background="{StaticResource SurfaceBrush}" 
                     CornerRadius="12" 

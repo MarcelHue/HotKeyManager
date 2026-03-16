@@ -71,13 +71,24 @@
                 <!-- Footer Info -->
                 <StackPanel Grid.Row="2" Padding="24" Spacing="8">
                     <Border Background="#1B2838" CornerRadius="8" Padding="12">
-                        <StackPanel Spacing="8">
-                            <!-- Hook Status -->
+                        <StackPanel Spacing="10">
+                            <!-- Keyboard Hook Status -->
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Hook Status" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Text="Keyboard Hook" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Ellipse Width="8" Height="8" Fill="#4ADE80" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="StatusText" Text="Aktiv" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <Ellipse x:Name="HookStatusDot" Width="8" Height="8" Fill="#EF4444" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="HookStatusText" Text="Inaktiv" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <Border Background="#0D1B2A" Height="1" />
+                            
+                            <!-- Kernel Driver Status -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Kernel-Treiber" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Ellipse x:Name="DriverStatusDot" Width="8" Height="8" Fill="#EF4444" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="DriverStatusText" Text="Nicht installiert" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>

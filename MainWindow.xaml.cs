@@ -1,8 +1,10 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using Microsoft.UI;
 using HotKeyManager.Helpers;
+using HotKeyManager.Services;
 using HotKeyManager.Views;
 using WinRT.Interop;
 
@@ -11,6 +13,11 @@ namespace HotKeyManager;
 public sealed partial class MainWindow : Window
 {
     private AppWindow? _appWindow;
+    private DispatcherTimer? _statusTimer;
+
+    private static readonly SolidColorBrush GreenBrush = new(Windows.UI.Color.FromArgb(255, 74, 222, 128));
+    private static readonly SolidColorBrush YellowBrush = new(Windows.UI.Color.FromArgb(255, 250, 204, 21));
+    private static readonly SolidColorBrush RedBrush = new(Windows.UI.Color.FromArgb(255, 239, 68, 68));
 
     public AppWindow? AppWindow => _appWindow;
 
@@ -20,12 +27,11 @@ public sealed partial class MainWindow : Window
     {
         this.InitializeComponent();
 
-        // Set window size and appearance
         SetupWindow();
-        // Navigate to Hotkeys page by default
         ContentFrame.Navigate(typeof(HotkeyListPage));
         UpdateNavSelection("Hotkeys");
         
+        StartStatusTimer();
     }
 
     private void SetupWindow()
@@ -92,13 +98,45 @@ public sealed partial class MainWindow : Window
 
     private void UpdateNavSelection(string selected)
     {
-        // Update visual state of navigation buttons
         NavHotkeysButton.Background = selected == "Hotkeys"
-            ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SurfaceBrush"]
-            : new Microsoft.UI.Xaml.Media.SolidColorBrush(Colors.Transparent);
+            ? (Brush)Application.Current.Resources["SurfaceBrush"]
+            : new SolidColorBrush(Colors.Transparent);
 
         NavSettingsButton.Background = selected == "Settings"
-            ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SurfaceBrush"]
-            : new Microsoft.UI.Xaml.Media.SolidColorBrush(Colors.Transparent);
+            ? (Brush)Application.Current.Resources["SurfaceBrush"]
+            : new SolidColorBrush(Colors.Transparent);
+    }
+
+    private void StartStatusTimer()
+    {
+        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _statusTimer.Tick += (_, _) => UpdateStatusDisplay();
+        _statusTimer.Start();
+    }
+
+    public void UpdateStatusDisplay()
+    {
+        var hookRunning = App.Current.KeyboardHookService.IsRunning;
+        HookStatusDot.Fill = hookRunning ? GreenBrush : RedBrush;
+        HookStatusText.Text = hookRunning ? "Aktiv" : "Inaktiv";
+
+        var driverInstalled = InterceptionService.IsDriverInstalled();
+        var driverActive = driverInstalled && InterceptionService.IsDriverActive();
+
+        if (driverActive)
+        {
+            DriverStatusDot.Fill = GreenBrush;
+            DriverStatusText.Text = "Aktiv";
+        }
+        else if (driverInstalled)
+        {
+            DriverStatusDot.Fill = YellowBrush;
+            DriverStatusText.Text = "Neustart noetig";
+        }
+        else
+        {
+            DriverStatusDot.Fill = RedBrush;
+            DriverStatusText.Text = "Nicht installiert";
+        }
     }
 }

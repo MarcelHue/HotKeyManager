@@ -30,6 +30,7 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
     private KeyboardHookService? _keyboardHook;
     private DispatcherTimer? _windowCaptureTimer;
     private int _windowCaptureCountdown;
+    private FrameworkElement? _mainWindowContent;
 
     public HotkeyEditorDialog()
     {
@@ -39,25 +40,15 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
         ActionTypeComboBox.SelectedIndex = 0;
         KeyStrokesListView.ItemsSource = _keyStrokes;
 
-        // Update empty hint when collection changes
         _keyStrokes.CollectionChanged += (s, e) => UpdateEmptyKeyStrokesHint();
 
-        // Adjust dialog size based on main window - must be done in constructor BEFORE ShowAsync
         if (App.Current.MainWindow is MainWindow mainWindow)
         {
-            var windowSize = mainWindow.CurrentSize;
+            ApplyDialogSize(mainWindow.CurrentSize);
 
-            var dialogWidth = windowSize.Width * 0.5;
-            var dialogHeight = windowSize.Height * 0.5;
-
-            this.Resources["ContentDialogMaxWidth"] = dialogWidth;
-            this.Resources["ContentDialogMaxHeight"] = dialogHeight;
-
-            this.Resources["ContentDialogMinWidth"] = GlobalConst.DEFAULT_DIALOG_WIDTH;
-            this.Resources["ContentDialogMinHeight"] = GlobalConst.DEFAULT_DIALOG_HEIGHT;
-
-            RootPanel.Width = dialogWidth;
-            MainScrollViewer.MaxHeight = dialogHeight;
+            _mainWindowContent = mainWindow.Content as FrameworkElement;
+            if (_mainWindowContent != null)
+                _mainWindowContent.SizeChanged += OnMainWindowSizeChanged;
         }
     }
 
@@ -670,11 +661,33 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
 
     private void ContentDialog_Closing(ContentDialog sender, ContentDialogClosingEventArgs args)
     {
-        // Stop any active capture mode when dialog closes
         StopInlineCapture();
         StopKeyStrokeCapture();
         StopRecording();
         StopWindowCapture();
+
+        if (_mainWindowContent != null)
+            _mainWindowContent.SizeChanged -= OnMainWindowSizeChanged;
+    }
+
+    private void OnMainWindowSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (App.Current.MainWindow is MainWindow mainWindow)
+            ApplyDialogSize(mainWindow.CurrentSize);
+    }
+
+    private void ApplyDialogSize(Windows.Graphics.SizeInt32 windowSize)
+    {
+        var dialogWidth = windowSize.Width * 0.9;
+        var dialogHeight = windowSize.Height * 0.9;
+
+        this.Resources["ContentDialogMaxWidth"] = dialogWidth;
+        this.Resources["ContentDialogMaxHeight"] = dialogHeight;
+        this.Resources["ContentDialogMinWidth"] = (double)GlobalConst.DEFAULT_DIALOG_WIDTH;
+        this.Resources["ContentDialogMinHeight"] = (double)GlobalConst.DEFAULT_DIALOG_HEIGHT;
+
+        RootPanel.Width = dialogWidth;
+        MainScrollViewer.MaxHeight = dialogHeight;
     }
 
     private void ShowError(string message)

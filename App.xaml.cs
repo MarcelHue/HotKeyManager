@@ -77,6 +77,66 @@ public partial class App : Application
         {
             InterceptionService.Start();
         }
+        
+        // Statusanzeige im MainWindow aktualisieren
+        (_mainWindow as MainWindow)?.UpdateStatusDisplay();
+        
+        // Automatische Treiber-Erkennung
+        await CheckAndPromptDriverInstallAsync();
+    }
+
+    private async Task CheckAndPromptDriverInstallAsync()
+    {
+        if (InterceptionService.IsDriverInstalled())
+        {
+            if (!InterceptionService.IsDriverActive())
+            {
+                await ShowDialogAsync(
+                    "Neustart erforderlich",
+                    "Der Interception-Treiber ist installiert, aber noch nicht aktiv. " +
+                    "Bitte starte den Computer neu, damit der Treiber geladen wird.");
+            }
+            return;
+        }
+
+        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
+        {
+            XamlRoot = _mainWindow?.Content.XamlRoot,
+            Title = "Kernel-Mode Treiber nicht installiert",
+            Content = "Der Interception-Treiber ist nicht installiert. Dieser Treiber wird fuer " +
+                      "die Kernel-Mode Tastatur-Injektion benoetigt (Tasten ohne LLKHF_INJECTED-Flag senden).\n\n" +
+                      "Moechtest du den Treiber jetzt installieren? (Erfordert Administrator-Rechte)",
+            PrimaryButtonText = "Installieren",
+            CloseButtonText = "Spaeter",
+            DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary)
+        {
+            var (success, message) = await InterceptionService.InstallDriverAsync();
+            
+            if (success && InterceptionService.IsDriverActive())
+            {
+                InterceptionService.Start();
+            }
+            
+            await ShowDialogAsync(success ? "Installation erfolgreich" : "Installation fehlgeschlagen", message);
+            (_mainWindow as MainWindow)?.UpdateStatusDisplay();
+        }
+    }
+
+    private async Task ShowDialogAsync(string title, string message)
+    {
+        if (_mainWindow?.Content.XamlRoot == null) return;
+        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
+        {
+            XamlRoot = _mainWindow.Content.XamlRoot,
+            Title = title,
+            Content = message,
+            CloseButtonText = "OK"
+        };
+        await dialog.ShowAsync();
     }
 
     public void ShowMainWindow()
