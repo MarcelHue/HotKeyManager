@@ -230,7 +230,8 @@ public sealed partial class HotkeyEditorDialog : ContentDialog
 
     private void UpdateKernelInjectionWarning()
     {
-        KernelInjectionWarning.IsOpen = _useKernelInjection && !InterceptionService.IsDriverActive();
+        var driverReady = App.Current.InterceptionService.IsRunning || InterceptionService.IsDriverActive();
+        KernelInjectionWarning.IsOpen = _useKernelInjection && !driverReady;
     }
 
     private void ActionType_SelectionChanged(object sender, SelectionChangedEventArgs e)

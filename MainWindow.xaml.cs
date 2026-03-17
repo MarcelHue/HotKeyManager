@@ -186,23 +186,28 @@ public sealed partial class MainWindow : Window
         HookStatusDot.Fill = hookRunning ? GreenBrush : RedBrush;
         HookStatusText.Text = hookRunning ? "Aktiv" : "Inaktiv";
 
-        var driverInstalled = InterceptionService.IsDriverInstalled();
-        var driverActive = driverInstalled && InterceptionService.IsDriverActive();
-
-        if (driverActive)
+        // WICHTIG: Wenn der InterceptionService laeuft, den Status direkt ablesen.
+        // InputInterceptor.Initialize() darf NICHT aufgerufen werden waehrend der
+        // KeyboardHook aktiv ist - das erzeugt einen zweiten Interception-Context
+        // und fuehrt zu einem nativen Access Violation in InterceptionMain().
+        if (App.Current.InterceptionService.IsRunning)
         {
             DriverStatusDot.Fill = GreenBrush;
             DriverStatusText.Text = "Aktiv";
         }
-        else if (driverInstalled)
-        {
-            DriverStatusDot.Fill = YellowBrush;
-            DriverStatusText.Text = "Neustart noetig";
-        }
         else
         {
-            DriverStatusDot.Fill = RedBrush;
-            DriverStatusText.Text = "Nicht installiert";
+            var driverInstalled = InterceptionService.IsDriverInstalled();
+            if (driverInstalled)
+            {
+                DriverStatusDot.Fill = YellowBrush;
+                DriverStatusText.Text = "Neustart noetig";
+            }
+            else
+            {
+                DriverStatusDot.Fill = RedBrush;
+                DriverStatusText.Text = "Nicht installiert";
+            }
         }
     }
 }

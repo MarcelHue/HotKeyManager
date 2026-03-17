@@ -175,6 +175,8 @@ public class InterceptionService : IDisposable
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
     private const uint MAPVK_VK_TO_VSC = 0;
 
+    public bool IsRunning => _isRunning;
+
     /// <summary>True wenn der Kernel-Treiber aktiv ist und Tasten gesendet werden können.</summary>
     public bool CanSendKernel => _isRunning && _keyboardHook != null;
 

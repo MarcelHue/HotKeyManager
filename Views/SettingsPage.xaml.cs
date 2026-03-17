@@ -55,7 +55,8 @@ public sealed partial class SettingsPage : Page
     private void UpdateDriverStatus()
     {
         var installed = InterceptionService.IsDriverInstalled();
-        var active = installed && InterceptionService.IsDriverActive();
+        var active = App.Current.InterceptionService.IsRunning
+                     || (installed && !App.Current.InterceptionService.IsRunning && InterceptionService.IsDriverActive());
 
         if (active)
         {
