@@ -185,6 +185,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Tastenfolge" FontWeight="SemiBold" VerticalAlignment="Center" />
                         
@@ -192,12 +193,43 @@
                         <Button x:Name="AddKeyStrokeButton" Grid.Column="1" Click="AddKeyStroke_Click">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon Glyph="&#xE710;" FontSize="12" />
-                                <TextBlock Text="Taste hinzufügen" />
+                                <TextBlock Text="Taste erfassen" />
                             </StackPanel>
                         </Button>
                         
+                        <!-- Manuelle Taste aus Liste -->
+                        <Button x:Name="ManualKeyButton" Grid.Column="2" Margin="4,0,0,0"
+                                ToolTipService.ToolTip="Taste manuell aus Liste auswählen (z.B. F13-F24)">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8FD;" FontSize="12" />
+                                <TextBlock Text="Manuell" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <Flyout x:Name="ManualKeyFlyout" Placement="Bottom">
+                                    <StackPanel Width="260" Spacing="8">
+                                        <TextBlock Text="Taste auswählen" FontWeight="SemiBold" />
+                                        <AutoSuggestBox x:Name="KeySearchBox"
+                                                        PlaceholderText="Suche... (z.B. F16)"
+                                                        QueryIcon="Find"
+                                                        TextChanged="KeySearchBox_TextChanged"
+                                                        SuggestionChosen="KeySearchBox_SuggestionChosen" />
+                                        <ListView x:Name="KeyPickerListView"
+                                                  MaxHeight="250"
+                                                  SelectionMode="Single"
+                                                  SelectionChanged="KeyPickerListView_SelectionChanged">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Name}" Padding="4,6" />
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                        
                         <!-- Advanced Mode: Aufnahme starten/stoppen -->
-                        <Button x:Name="RecordButton" Grid.Column="2" 
+                        <Button x:Name="RecordButton" Grid.Column="3" 
                                 Click="ToggleRecording_Click"
                                 Visibility="Collapsed">
                             <StackPanel Orientation="Horizontal" Spacing="6">

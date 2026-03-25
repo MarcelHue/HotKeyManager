@@ -208,4 +208,39 @@ public static class KeyHelper
             or VK.VK_LMENU or VK.VK_RMENU
             or VK.VK_LWIN or VK.VK_RWIN;
     }
+
+    public record VirtualKeyEntry(string Name, int VirtualKeyCode);
+
+    private static List<VirtualKeyEntry>? _allKeys;
+
+    public static IReadOnlyList<VirtualKeyEntry> GetAllKeys()
+    {
+        if (_allKeys != null) return _allKeys;
+
+        _allKeys = new List<VirtualKeyEntry>();
+
+        foreach (var kvp in KeyNames)
+            _allKeys.Add(new VirtualKeyEntry(kvp.Value, kvp.Key));
+
+        for (int vk = 0x30; vk <= 0x39; vk++)
+            _allKeys.Add(new VirtualKeyEntry(((char)vk).ToString(), vk));
+
+        for (int vk = 0x41; vk <= 0x5A; vk++)
+            _allKeys.Add(new VirtualKeyEntry(((char)vk).ToString(), vk));
+
+        // Media / Browser keys
+        _allKeys.Add(new VirtualKeyEntry("Volume Mute", 0xAD));
+        _allKeys.Add(new VirtualKeyEntry("Volume Down", 0xAE));
+        _allKeys.Add(new VirtualKeyEntry("Volume Up", 0xAF));
+        _allKeys.Add(new VirtualKeyEntry("Next Track", 0xB0));
+        _allKeys.Add(new VirtualKeyEntry("Prev Track", 0xB1));
+        _allKeys.Add(new VirtualKeyEntry("Stop Media", 0xB2));
+        _allKeys.Add(new VirtualKeyEntry("Play/Pause", 0xB3));
+        _allKeys.Add(new VirtualKeyEntry("Browser Back", 0xA6));
+        _allKeys.Add(new VirtualKeyEntry("Browser Forward", 0xA7));
+        _allKeys.Add(new VirtualKeyEntry("Browser Refresh", 0xA8));
+
+        _allKeys.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+        return _allKeys;
+    }
 }
