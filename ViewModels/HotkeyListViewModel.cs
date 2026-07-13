@@ -38,7 +38,9 @@ public partial class HotkeyListViewModel : ObservableObject
     {
         _hotkeyService = hotkeyService ?? App.Current.HotkeyManagerService;
         _actionExecutor = actionExecutor ?? App.Current.ActionExecutor;
-        _dispatcherQueue = dispatcherQueue ?? App.Current.DispatcherQueue;
+        // GetForCurrentThread statt App.DispatcherQueue: das VM wird waehrend der
+        // MainWindow-Konstruktion erzeugt, wenn App.MainWindow noch null ist.
+        _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
     }
 
     /// <summary>Beim Betreten der Seite aufrufen (OnNavigatedTo).</summary>

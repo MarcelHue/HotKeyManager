@@ -85,7 +85,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
     {
         _hotkeyService = hotkeyService ?? App.Current.HotkeyManagerService;
         _keyboardHook = keyboardHook ?? App.Current.KeyboardHookService;
-        _dispatcherQueue = dispatcherQueue ?? App.Current.DispatcherQueue;
+        _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
 
         ActionEditors = new ActionEditorViewModelBase[]
         {

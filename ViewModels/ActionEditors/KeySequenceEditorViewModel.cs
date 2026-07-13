@@ -63,7 +63,7 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
         DispatcherQueue? dispatcherQueue = null)
     {
         _keyboardHook = keyboardHook ?? App.Current.KeyboardHookService;
-        _dispatcherQueue = dispatcherQueue ?? App.Current.DispatcherQueue;
+        _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
 
         KeyStrokes.CollectionChanged += (s, e) => IsEmptyHintVisible = KeyStrokes.Count == 0;
     }

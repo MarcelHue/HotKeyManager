@@ -18,7 +18,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- Version wird im Release-Workflow aus dem Git-Tag ueberschrieben (-p:Version=x.y.z) -->
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
 
     <!-- Eigener Main-Einstiegspunkt in Program.cs (Velopack muss vor dem XAML-Start laufen) -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>

@@ -11,6 +11,7 @@ public class ConfigurationService
         "HotKeyManager");
     
     private static readonly string ConfigPath = Path.Combine(ConfigFolder, "config.json");
+    private static readonly string ConfigBackupPath = Path.Combine(ConfigFolder, "config.json.bak");
     
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -23,30 +24,59 @@ public class ConfigurationService
     
     public async Task LoadAsync()
     {
+        // Erst die Hauptdatei versuchen, bei Fehler (korrupt/abgebrochener Save)
+        // automatisch auf das Backup zurueckfallen.
+        if (await TryLoadFromAsync(ConfigPath))
+            return;
+
+        if (await TryLoadFromAsync(ConfigBackupPath))
+        {
+            App.Current.LogService.Warning("config.json war defekt — Backup wurde wiederhergestellt.");
+            await SaveAsync();
+            return;
+        }
+
+        Configuration = new AppConfiguration();
+    }
+
+    private async Task<bool> TryLoadFromAsync(string path)
+    {
         try
         {
-            if (File.Exists(ConfigPath))
-            {
-                var json = await File.ReadAllTextAsync(ConfigPath);
-                Configuration = JsonSerializer.Deserialize<AppConfiguration>(json, JsonOptions) ?? new();
-            }
+            if (!File.Exists(path)) return false;
+
+            var json = await File.ReadAllTextAsync(path);
+            var config = JsonSerializer.Deserialize<AppConfiguration>(json, JsonOptions);
+            if (config == null) return false;
+
+            Configuration = config;
+            return true;
         }
         catch (Exception ex)
         {
-            App.Current.LogService.Error("Fehler beim Laden der Konfiguration", ex);
-            Configuration = new AppConfiguration();
+            App.Current.LogService.Error($"Fehler beim Laden der Konfiguration ({Path.GetFileName(path)})", ex);
+            return false;
         }
     }
-    
+
     public async Task SaveAsync()
     {
         try
         {
             // Ensure directory exists
             Directory.CreateDirectory(ConfigFolder);
-            
+
             var json = JsonSerializer.Serialize(Configuration, JsonOptions);
-            await File.WriteAllTextAsync(ConfigPath, json);
+
+            // Atomar schreiben: erst Temp-Datei, dann Replace mit Backup der alten Datei.
+            // So bleibt bei einem Absturz mitten im Speichern immer eine gueltige Config erhalten.
+            var tempPath = ConfigPath + ".tmp";
+            await File.WriteAllTextAsync(tempPath, json);
+
+            if (File.Exists(ConfigPath))
+                File.Replace(tempPath, ConfigPath, ConfigBackupPath);
+            else
+                File.Move(tempPath, ConfigPath);
         }
         catch (Exception ex)
         {

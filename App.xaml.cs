@@ -110,7 +110,8 @@ public partial class App : Application
             if (ConfigurationService.Configuration.Settings.RunAtStartup)
                 AutoStartService.SetAutoStart(true);
 
-            HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
+            // Hook und Interception ZUERST starten: selbst wenn ein UI-Handler beim
+            // LoadHotkeys wirft, bleiben Hook und Treiber funktionsfaehig.
             KeyboardHookService.Start();
 
             // Interception-Service starten, falls Treiber aktiv ist
@@ -118,6 +119,8 @@ public partial class App : Application
             {
                 InterceptionService.Start();
             }
+
+            HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
 
             // Statusanzeige im MainWindow aktualisieren
             (_mainWindow as MainWindow)?.UpdateStatusDisplay();
@@ -135,7 +138,9 @@ public partial class App : Application
     {
         if (InterceptionService.IsDriverInstalled())
         {
-            if (!InterceptionService.IsDriverActive())
+            // IsRunning zuerst pruefen: IsDriverActive (InputInterceptor.Initialize) darf
+            // nicht aufgerufen werden, wenn der Interception-Hook bereits laeuft.
+            if (!InterceptionService.IsRunning && !InterceptionService.IsDriverActive())
             {
                 await ShowDialogAsync(
                     "Neustart erforderlich",
