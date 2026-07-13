@@ -22,11 +22,13 @@ public partial class MainViewModel : ObservableObject
     private DispatcherQueueTimer? _updateCheckTimer;
     private UpdateInfo? _pendingUpdate;
 
-    [ObservableProperty]
-    private string _hookStatusText = "Aktiv";
+    private static readonly Windows.UI.Color StatusRed = Windows.UI.Color.FromArgb(255, 239, 68, 68);
 
     [ObservableProperty]
-    private SolidColorBrush _hookStatusBrush = new(StatusGreen);
+    private string _hookStatusText = "Inaktiv";
+
+    [ObservableProperty]
+    private SolidColorBrush _hookStatusBrush = new(StatusRed);
 
     [ObservableProperty]
     private string _driverStatusText = "Nicht installiert";
@@ -51,12 +53,23 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel(UpdateService? updateService = null)
     {
         _updateService = updateService ?? App.Current.UpdateService;
-        RefreshDriverStatus();
+        RefreshStatus();
     }
 
-    public void RefreshDriverStatus()
+    /// <summary>
+    /// Aktualisiert Hook- und Treiber-Status (wird per Timer alle 5s aufgerufen).
+    /// WICHTIG: Wenn der InterceptionService laeuft, den Status direkt ablesen.
+    /// InputInterceptor.Initialize() (IsDriverActive) darf NICHT aufgerufen werden,
+    /// waehrend der KeyboardHook aktiv ist — das erzeugt einen zweiten
+    /// Interception-Context und fuehrt zu einem nativen Access Violation.
+    /// </summary>
+    public void RefreshStatus()
     {
-        if (InterceptionService.IsDriverActive())
+        var hookRunning = App.Current.KeyboardHookService.IsRunning;
+        HookStatusText = hookRunning ? "Aktiv" : "Inaktiv";
+        HookStatusBrush = new SolidColorBrush(hookRunning ? StatusGreen : StatusRed);
+
+        if (App.Current.InterceptionService.IsRunning)
         {
             DriverStatusText = "Aktiv";
             DriverStatusBrush = new SolidColorBrush(StatusGreen);

@@ -49,6 +49,7 @@ public class KeyboardHookService : IDisposable
     public event EventHandler<KeyEventArgs>? KeyPressed;
     public event EventHandler<KeyEventArgs>? KeyReleased;
     
+    public bool IsRunning => _isRunning;
     public bool IsCapturing { get; set; }
     
     /// <summary>
@@ -68,10 +69,13 @@ public class KeyboardHookService : IDisposable
         
         if (_hookId == IntPtr.Zero)
         {
-            throw new InvalidOperationException($"Failed to set keyboard hook. Error: {Marshal.GetLastWin32Error()}");
+            var error = Marshal.GetLastWin32Error();
+            App.Current.LogService.Error($"Keyboard-Hook konnte nicht gesetzt werden (Win32-Error: {error})");
+            throw new InvalidOperationException($"Failed to set keyboard hook. Error: {error}");
         }
         
         _isRunning = true;
+        App.Current.LogService.Info("Keyboard-Hook gestartet");
     }
     
     public void Stop()
@@ -81,6 +85,37 @@ public class KeyboardHookService : IDisposable
         UnhookWindowsHookEx(_hookId);
         _hookId = IntPtr.Zero;
         _isRunning = false;
+    }
+
+    /// <summary>
+    /// Entfernt den Hook und setzt ihn sofort neu. Behebt das Problem, dass Windows
+    /// Low-Level Hooks stillschweigend entfernt (z.B. nach Timeout, Sleep/Wake, Lock/Unlock).
+    /// </summary>
+    public void Reinstall()
+    {
+        if (!_isRunning) return;
+
+        if (_hookId != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_hookId);
+            _hookId = IntPtr.Zero;
+        }
+
+        _proc = HookCallback;
+        using var curProcess = Process.GetCurrentProcess();
+        using var curModule = curProcess.MainModule!;
+        _hookId = SetWindowsHookEx(WH_KEYBOARD_LL, _proc, GetModuleHandle(curModule.ModuleName!), 0);
+
+        if (_hookId == IntPtr.Zero)
+        {
+            var error = Marshal.GetLastWin32Error();
+            _isRunning = false;
+            App.Current.LogService.Error($"Hook-Reinstall fehlgeschlagen (Win32-Error: {error})");
+        }
+        else
+        {
+            App.Current.LogService.Debug("Keyboard-Hook reinstalliert");
+        }
     }
     
     public ModifierKeys GetCurrentModifiers()

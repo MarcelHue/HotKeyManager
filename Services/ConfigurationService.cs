@@ -33,7 +33,7 @@ public class ConfigurationService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading configuration: {ex.Message}");
+            App.Current.LogService.Error("Fehler beim Laden der Konfiguration", ex);
             Configuration = new AppConfiguration();
         }
     }
@@ -50,7 +50,7 @@ public class ConfigurationService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error saving configuration: {ex.Message}");
+            App.Current.LogService.Error("Fehler beim Speichern der Konfiguration", ex);
         }
     }
     

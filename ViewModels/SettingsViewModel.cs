@@ -23,6 +23,10 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _themeIndex;
 
+    /// <summary>0 = Debug, 1 = Info, 2 = Warning, 3 = Error.</summary>
+    [ObservableProperty]
+    private int _logLevelIndex = 2;
+
     [ObservableProperty]
     private InfoBarSeverity _driverSeverity = InfoBarSeverity.Informational;
 
@@ -33,7 +37,7 @@ public partial class SettingsViewModel : ObservableObject
     private string _driverButtonText = "Installieren";
 
     [ObservableProperty]
-    private string _driverButtonGlyph = "";
+    private string _driverButtonGlyph = "";
 
     [ObservableProperty]
     private bool _isDriverButtonEnabled = true;
@@ -64,6 +68,14 @@ public partial class SettingsViewModel : ObservableObject
             {
                 "light" => 0,
                 "dark" => 1,
+                _ => 2
+            };
+            LogLevelIndex = settings.LogLevel?.ToLowerInvariant() switch
+            {
+                "debug" => 0,
+                "info" => 1,
+                "warning" => 2,
+                "error" => 3,
                 _ => 2
             };
         }
@@ -120,32 +132,57 @@ public partial class SettingsViewModel : ObservableObject
         _ = _configService.SaveAsync();
     }
 
+    partial void OnLogLevelIndexChanged(int value)
+    {
+        if (_isLoading) return;
+
+        var level = value switch
+        {
+            0 => "Debug",
+            1 => "Info",
+            3 => "Error",
+            _ => "Warning"
+        };
+        _configService.Configuration.Settings.LogLevel = level;
+        App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(level);
+        _ = _configService.SaveAsync();
+    }
+
+    /// <summary>
+    /// Treiber-Status ermitteln. Laeuft der InterceptionService bereits, wird der Status
+    /// direkt abgelesen — IsDriverActive() (InputInterceptor.Initialize) darf dann nicht
+    /// erneut aufgerufen werden (zweiter Interception-Context -> Access Violation).
+    /// </summary>
     public void RefreshDriverStatus()
     {
-        if (InterceptionService.IsDriverActive())
+        var installed = InterceptionService.IsDriverInstalled();
+        var active = App.Current.InterceptionService.IsRunning
+                     || (installed && InterceptionService.IsDriverActive());
+
+        if (active)
         {
             DriverSeverity = InfoBarSeverity.Success;
             DriverStatusMessage = "Treiber ist aktiv und einsatzbereit.";
             DriverButtonText = "Deinstallieren";
-            DriverButtonGlyph = "";
+            DriverButtonGlyph = "";
         }
-        else if (InterceptionService.IsDriverInstalled())
+        else if (installed)
         {
             DriverSeverity = InfoBarSeverity.Warning;
             DriverStatusMessage = "Treiber ist installiert, aber ein Neustart ist erforderlich.";
             DriverButtonText = "Deinstallieren";
-            DriverButtonGlyph = "";
+            DriverButtonGlyph = "";
         }
         else
         {
             DriverSeverity = InfoBarSeverity.Informational;
             DriverStatusMessage = "Treiber ist nicht installiert. Für Kernel-Mode Injektion wird er benötigt.";
             DriverButtonText = "Installieren";
-            DriverButtonGlyph = "";
+            DriverButtonGlyph = "";
         }
 
         // Shell-Statusanzeige mitziehen
-        (App.Current.MainWindow as MainWindow)?.ViewModel.RefreshDriverStatus();
+        (App.Current.MainWindow as MainWindow)?.ViewModel.RefreshStatus();
     }
 
     public async Task<(bool Success, string Message)> InstallDriverAsync()
@@ -154,6 +191,12 @@ public partial class SettingsViewModel : ObservableObject
         DriverButtonText = "Wird installiert...";
 
         var result = await InterceptionService.InstallDriverAsync();
+
+        // Manche Systeme laden den Treiber ohne Neustart — dann direkt starten
+        if (result.Success && InterceptionService.IsDriverActive())
+        {
+            App.Current.InterceptionService.Start();
+        }
 
         IsDriverButtonEnabled = true;
         RefreshDriverStatus();

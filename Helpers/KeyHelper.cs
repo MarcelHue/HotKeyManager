@@ -1,7 +1,13 @@
+using System.Runtime.InteropServices;
+
 namespace HotKeyManager.Helpers;
 
 public static class KeyHelper
 {
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+    private const uint MAPVK_VK_TO_CHAR = 2;
     // Virtual Key Codes
     public static class VK
     {
@@ -89,18 +95,18 @@ public static class KeyHelper
         public const int VK_LMENU = 0xA4;
         public const int VK_RMENU = 0xA5;
         
-        public const int VK_OEM_1 = 0xBA;      // ;:
-        public const int VK_OEM_PLUS = 0xBB;   // =+
-        public const int VK_OEM_COMMA = 0xBC;  // ,<
-        public const int VK_OEM_MINUS = 0xBD;  // -_
-        public const int VK_OEM_PERIOD = 0xBE; // .>
-        public const int VK_OEM_2 = 0xBF;      // /?
-        public const int VK_OEM_3 = 0xC0;      // `~
-        public const int VK_OEM_4 = 0xDB;      // [{
-        public const int VK_OEM_5 = 0xDC;      // \|
-        public const int VK_OEM_6 = 0xDD;      // ]}
-        public const int VK_OEM_7 = 0xDE;      // '"
-        public const int VK_OEM_102 = 0xE2;    // <> on 102 key keyboard
+        public const int VK_OEM_1 = 0xBA;
+        public const int VK_OEM_PLUS = 0xBB;
+        public const int VK_OEM_COMMA = 0xBC;
+        public const int VK_OEM_MINUS = 0xBD;
+        public const int VK_OEM_PERIOD = 0xBE;
+        public const int VK_OEM_2 = 0xBF;
+        public const int VK_OEM_3 = 0xC0;
+        public const int VK_OEM_4 = 0xDB;
+        public const int VK_OEM_5 = 0xDC;
+        public const int VK_OEM_6 = 0xDD;
+        public const int VK_OEM_7 = 0xDE;
+        public const int VK_OEM_102 = 0xE2;
     }
     
     private static readonly Dictionary<int, string> KeyNames = new()
@@ -167,18 +173,6 @@ public static class KeyHelper
         { VK.VK_F24, "F24" },
         { VK.VK_NUMLOCK, "Num Lock" },
         { VK.VK_SCROLL, "Scroll Lock" },
-        { VK.VK_OEM_1, ";" },
-        { VK.VK_OEM_PLUS, "=" },
-        { VK.VK_OEM_COMMA, "," },
-        { VK.VK_OEM_MINUS, "-" },
-        { VK.VK_OEM_PERIOD, "." },
-        { VK.VK_OEM_2, "/" },
-        { VK.VK_OEM_3, "`" },
-        { VK.VK_OEM_4, "[" },
-        { VK.VK_OEM_5, "\\" },
-        { VK.VK_OEM_6, "]" },
-        { VK.VK_OEM_7, "'" },
-        { VK.VK_OEM_102, "<>" },
     };
     
     public static string GetKeyName(int virtualKeyCode)
@@ -194,6 +188,15 @@ public static class KeyHelper
         if (virtualKeyCode is >= 0x41 and <= 0x5A)
             return ((char)virtualKeyCode).ToString();
         
+        // OEM and other keys: use keyboard-layout-aware mapping
+        var mapped = MapVirtualKey((uint)virtualKeyCode, MAPVK_VK_TO_CHAR);
+        if (mapped > 0 && mapped < 0x10000)
+        {
+            var ch = (char)(mapped & 0x7FFFFFFF); // strip dead-key flag (bit 31)
+            if (!char.IsControl(ch))
+                return ch.ToString().ToUpper();
+        }
+
         return $"Key {virtualKeyCode:X2}";
     }
     
@@ -204,5 +207,40 @@ public static class KeyHelper
             or VK.VK_LCONTROL or VK.VK_RCONTROL 
             or VK.VK_LMENU or VK.VK_RMENU
             or VK.VK_LWIN or VK.VK_RWIN;
+    }
+
+    public record VirtualKeyEntry(string Name, int VirtualKeyCode);
+
+    private static List<VirtualKeyEntry>? _allKeys;
+
+    public static IReadOnlyList<VirtualKeyEntry> GetAllKeys()
+    {
+        if (_allKeys != null) return _allKeys;
+
+        _allKeys = new List<VirtualKeyEntry>();
+
+        foreach (var kvp in KeyNames)
+            _allKeys.Add(new VirtualKeyEntry(kvp.Value, kvp.Key));
+
+        for (int vk = 0x30; vk <= 0x39; vk++)
+            _allKeys.Add(new VirtualKeyEntry(((char)vk).ToString(), vk));
+
+        for (int vk = 0x41; vk <= 0x5A; vk++)
+            _allKeys.Add(new VirtualKeyEntry(((char)vk).ToString(), vk));
+
+        // Media / Browser keys
+        _allKeys.Add(new VirtualKeyEntry("Volume Mute", 0xAD));
+        _allKeys.Add(new VirtualKeyEntry("Volume Down", 0xAE));
+        _allKeys.Add(new VirtualKeyEntry("Volume Up", 0xAF));
+        _allKeys.Add(new VirtualKeyEntry("Next Track", 0xB0));
+        _allKeys.Add(new VirtualKeyEntry("Prev Track", 0xB1));
+        _allKeys.Add(new VirtualKeyEntry("Stop Media", 0xB2));
+        _allKeys.Add(new VirtualKeyEntry("Play/Pause", 0xB3));
+        _allKeys.Add(new VirtualKeyEntry("Browser Back", 0xA6));
+        _allKeys.Add(new VirtualKeyEntry("Browser Forward", 0xA7));
+        _allKeys.Add(new VirtualKeyEntry("Browser Refresh", 0xA8));
+
+        _allKeys.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+        return _allKeys;
     }
 }

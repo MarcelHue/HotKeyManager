@@ -73,6 +73,7 @@ public sealed partial class SettingsPage : Page
                     App.Current.ConfigurationService.Configuration = config;
                     await App.Current.ConfigurationService.SaveAsync();
                     App.Current.HotkeyManagerService.LoadHotkeys(config.Hotkeys);
+                    App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(config.Settings.LogLevel);
                     ThemeService.Apply(config.Settings.Theme);
                     ViewModel.Load();
 
@@ -119,7 +120,7 @@ public sealed partial class SettingsPage : Page
             {
                 XamlRoot = this.XamlRoot,
                 Title = "Treiber deinstallieren?",
-                Content = "Der Interception-Treiber wird deinstalliert. Nach der Deinstallation ist ein Neustart erforderlich.",
+                Content = "Der Interception-Treiber wird deinstalliert. Kernel-Mode Tastatur-Injektion ist danach nicht mehr verfügbar.",
                 PrimaryButtonText = "Deinstallieren",
                 CloseButtonText = "Abbrechen",
                 DefaultButton = ContentDialogButton.Close
@@ -128,32 +129,12 @@ public sealed partial class SettingsPage : Page
             if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary) return;
 
             var (success, message) = await ViewModel.UninstallDriverAsync();
-
-            if (success)
-                await ShowRestartMessage("Treiber deinstalliert", message);
-            else
-                await ShowMessage("Fehler", message);
+            await ShowMessage(success ? "Deinstallation erfolgreich" : "Deinstallation fehlgeschlagen", message);
         }
         else
         {
-            var confirmDialog = new ContentDialog
-            {
-                XamlRoot = this.XamlRoot,
-                Title = "Treiber installieren?",
-                Content = "Der Interception-Treiber wird installiert. Dies erfordert Administrator-Rechte. Nach der Installation ist ein Neustart erforderlich.",
-                PrimaryButtonText = "Installieren",
-                CloseButtonText = "Abbrechen",
-                DefaultButton = ContentDialogButton.Primary
-            };
-
-            if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary) return;
-
             var (success, message) = await ViewModel.InstallDriverAsync();
-
-            if (success)
-                await ShowRestartMessage("Treiber installiert", message);
-            else
-                await ShowMessage("Fehler", message);
+            await ShowMessage(success ? "Installation erfolgreich" : "Installation fehlgeschlagen", message);
         }
     }
 
@@ -200,22 +181,6 @@ public sealed partial class SettingsPage : Page
         {
             await mainViewModel.UpdateNowCommand.ExecuteAsync(null);
         }
-    }
-
-    private async Task ShowRestartMessage(string title, string message)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            Title = title,
-            Content = message + "\n\nMöchtest du den Computer jetzt neu starten?",
-            PrimaryButtonText = "Jetzt neu starten",
-            CloseButtonText = "Später",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-            System.Diagnostics.Process.Start("shutdown", "/r /t 0");
     }
 
     private async Task ShowMessage(string title, string message)

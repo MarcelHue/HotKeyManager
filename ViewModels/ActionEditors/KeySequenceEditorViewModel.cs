@@ -35,7 +35,7 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
     private bool _useKernelInjection;
 
     [ObservableProperty]
-    private string _addKeyButtonText = "Taste hinzufügen";
+    private string _addKeyButtonText = "Taste erfassen";
 
     [ObservableProperty]
     private bool _isAddKeyEnabled = true;
@@ -52,7 +52,11 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
     [ObservableProperty]
     private bool _isEmptyHintVisible = true;
 
-    public bool IsKernelWarningVisible => UseKernelInjection && !InterceptionService.IsDriverActive();
+    // Laeuft der InterceptionService bereits, den Status direkt ablesen — IsDriverActive()
+    // (InputInterceptor.Initialize) wuerde bei laufendem Hook einen zweiten
+    // Interception-Context erzeugen (native Access Violation).
+    public bool IsKernelWarningVisible => UseKernelInjection
+        && !(App.Current.InterceptionService.IsRunning || InterceptionService.IsDriverActive());
 
     public KeySequenceEditorViewModel(
         KeyboardHookService? keyboardHook = null,
@@ -122,8 +126,36 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
         _keyboardHook.KeyPressed -= OnKeyPressedForKeyStroke;
         _keyboardHook.IsCapturing = false;
 
-        AddKeyButtonText = "Taste hinzufügen";
+        AddKeyButtonText = "Taste erfassen";
         IsAddKeyEnabled = true;
+    }
+
+    /// <summary>
+    /// Fuegt eine manuell aus der Liste gewaehlte Taste hinzu (z.B. F13-F24, Medientasten,
+    /// die per Erfassung nicht erreichbar sind). Im Advanced Mode als KeyDown+KeyUp-Paar.
+    /// </summary>
+    public void AddManualKey(KeyHelper.VirtualKeyEntry entry)
+    {
+        KeyStrokes.Add(new KeyStroke
+        {
+            VirtualKeyCode = entry.VirtualKeyCode,
+            Modifiers = ModifierKeys.None,
+            DelayAfterMs = 50,
+            DisplayText = entry.Name,
+            EventType = IsAdvancedMode ? KeyEventType.KeyDown : KeyEventType.KeyPress
+        });
+
+        if (IsAdvancedMode)
+        {
+            KeyStrokes.Add(new KeyStroke
+            {
+                VirtualKeyCode = entry.VirtualKeyCode,
+                Modifiers = ModifierKeys.None,
+                DelayAfterMs = 10,
+                DisplayText = entry.Name,
+                EventType = KeyEventType.KeyUp
+            });
+        }
     }
 
     private void OnKeyPressedForKeyStroke(object? sender, KeyEventArgs e)

@@ -85,6 +85,36 @@
                 </StackPanel>
             </Border>
 
+            <!-- Logging -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Logging" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Log-Level" />
+                            <TextBlock Text="Bestimmt, welche Meldungen in die Log-Datei geschrieben werden (%APPDATA%\HotKeyManager\hotkey-manager.log)"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  Width="150"
+                                  VerticalAlignment="Center"
+                                  SelectedIndex="{x:Bind ViewModel.LogLevelIndex, Mode=TwoWay}">
+                            <ComboBoxItem Content="Debug" />
+                            <ComboBoxItem Content="Info" />
+                            <ComboBoxItem Content="Warnung" />
+                            <ComboBoxItem Content="Fehler" />
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Kernel-Mode Treiber -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="16">
