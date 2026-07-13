@@ -66,6 +66,8 @@ Windows-native application for managing global hotkeys system-wide. Users define
 - `SendTextAction` — Type text as Unicode keyboard input (`CharDelayMs` = typing speed)
 - `ProcessAction` — Launch external process
 - `BatchAction` — Execute CMD.exe batch command
+- `DelayAction` — Wait N ms (mainly as macro step)
+- `MacroAction` — Composite: ordered `Steps` list of any of the above (no macro nesting), executed top-down with optional global `StepDelayMs` between steps. Editor reuses the per-type editor UserControls as reorderable expander blocks (`MacroEditorView`).
 
 ### Hotkey Targeting
 - `WindowTargetMode`: `None`, `OnlyWhenActive`, `SendToBackground`

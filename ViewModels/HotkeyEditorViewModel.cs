@@ -93,7 +93,8 @@ public partial class HotkeyEditorViewModel : ObservableObject
             new KeySequenceEditorViewModel(),
             new ProcessEditorViewModel(),
             new BatchEditorViewModel(),
-            new SendTextEditorViewModel()
+            new SendTextEditorViewModel(),
+            new MacroEditorViewModel()
         };
 
         if (args?.Hotkey is { } hotkey)

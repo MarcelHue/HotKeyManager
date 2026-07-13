@@ -15,6 +15,8 @@ public class ActionEditorTemplateSelector : DataTemplateSelector
     public DataTemplate? ProcessTemplate { get; set; }
     public DataTemplate? BatchTemplate { get; set; }
     public DataTemplate? SendTextTemplate { get; set; }
+    public DataTemplate? DelayTemplate { get; set; }
+    public DataTemplate? MacroTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container)
     {
@@ -25,6 +27,8 @@ public class ActionEditorTemplateSelector : DataTemplateSelector
             ProcessEditorViewModel => ProcessTemplate,
             BatchEditorViewModel => BatchTemplate,
             SendTextEditorViewModel => SendTextTemplate,
+            DelayEditorViewModel => DelayTemplate,
+            MacroEditorViewModel => MacroTemplate,
             _ => null
         };
     }

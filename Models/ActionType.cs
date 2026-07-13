@@ -6,5 +6,7 @@ public enum ActionType
     KeySequence,
     StartProcess,
     BatchCommand,
-    SendText
+    SendText,
+    Delay,
+    Macro
 }

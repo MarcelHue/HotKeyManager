@@ -112,6 +112,28 @@ public class ActionExecutor
                     await ExecuteSendTextAsync(sendText);
                 }
                 break;
+            case DelayAction delay:
+                if (delay.DurationMs > 0)
+                    await Task.Delay(delay.DurationMs);
+                break;
+            case MacroAction macro:
+                await ExecuteMacroAsync(macro, windowMode, targetProcessName, targetWindowTitle);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Fuehrt die Bausteine eines Makros sequenziell von oben nach unten aus,
+    /// mit optionaler globaler Verzoegerung zwischen den Bausteinen.
+    /// </summary>
+    private async Task ExecuteMacroAsync(MacroAction macro, WindowTargetMode windowMode, string? targetProcessName, string? targetWindowTitle)
+    {
+        for (int i = 0; i < macro.Steps.Count; i++)
+        {
+            await ExecuteAsync(macro.Steps[i], windowMode, targetProcessName, targetWindowTitle);
+
+            if (macro.StepDelayMs > 0 && i < macro.Steps.Count - 1)
+                await Task.Delay(macro.StepDelayMs);
         }
     }
     

@@ -8,6 +8,8 @@ namespace HotKeyManager.Models;
 [JsonDerivedType(typeof(ProcessAction), "process")]
 [JsonDerivedType(typeof(BatchAction), "batch")]
 [JsonDerivedType(typeof(SendTextAction), "sendtext")]
+[JsonDerivedType(typeof(DelayAction), "delay")]
+[JsonDerivedType(typeof(MacroAction), "macro")]
 public abstract class ActionBase
 {
     [JsonIgnore]

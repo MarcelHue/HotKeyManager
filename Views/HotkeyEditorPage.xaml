@@ -22,13 +22,17 @@
         <DataTemplate x:Key="SendTextEditorTemplate">
             <ae:SendTextEditorView />
         </DataTemplate>
+        <DataTemplate x:Key="MacroEditorTemplate">
+            <ae:MacroEditorView />
+        </DataTemplate>
 
         <ae:ActionEditorTemplateSelector x:Key="ActionEditorSelector"
                                          WebhookTemplate="{StaticResource WebhookEditorTemplate}"
                                          KeySequenceTemplate="{StaticResource KeySequenceEditorTemplate}"
                                          ProcessTemplate="{StaticResource ProcessEditorTemplate}"
                                          BatchTemplate="{StaticResource BatchEditorTemplate}"
-                                         SendTextTemplate="{StaticResource SendTextEditorTemplate}" />
+                                         SendTextTemplate="{StaticResource SendTextEditorTemplate}"
+                                         MacroTemplate="{StaticResource MacroEditorTemplate}" />
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32,24,32,0">

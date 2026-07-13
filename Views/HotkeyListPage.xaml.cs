@@ -42,6 +42,11 @@ public sealed partial class HotkeyListPage : Page
         Frame.Navigate(typeof(HotkeyEditorPage), new EditorNavArgs { PreselectType = ActionType.SendText });
     }
 
+    private void AddMacro_Click(object sender, RoutedEventArgs e)
+    {
+        Frame.Navigate(typeof(HotkeyEditorPage), new EditorNavArgs { PreselectType = ActionType.Macro });
+    }
+
     private void EditHotkey_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is HotkeyDefinition hotkey)
