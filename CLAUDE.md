@@ -115,7 +115,7 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 
 **Official releases via GitHub Actions:** push a tag `vX.Y.Z` → `.github/workflows/release.yml` publishes, packs with Velopack (`vpk pack` + `vpk upload github`) and creates the GitHub Release with Setup exe, portable zip and delta packages. The csproj `<Version>` is overridden with the tag version.
 
-**Auto-update:** the installed app checks GitHub Releases on startup and every 6 h (`UpdateService` + InfoBar in `MainWindow`); manual check in Settings. Update checks are a no-op when running from a build directory (`UpdateManager.IsInstalled == false`).
+**Auto-update:** the installed app checks GitHub Releases on startup and every 15 min (`UpdateService`; persistent update button in the NavigationView pane footer); manual check in Settings. Update checks are a no-op when running from a build directory (`UpdateManager.IsInstalled == false`).
 
 ## Special Behaviors
 

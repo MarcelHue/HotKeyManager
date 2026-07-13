@@ -87,7 +87,8 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Startet Update-Checks: einmal sofort, danach alle 6 Stunden.
+    /// Startet Update-Checks: einmal sofort, danach alle 15 Minuten —
+    /// so erscheint die Update-Anzeige auch bei dauerhaft laufender App zeitnah.
     /// Vom MainWindow auf dem UI-Thread aufgerufen; No-Op im Entwicklungs-Build.
     /// </summary>
     public void StartUpdateChecks()
@@ -99,7 +100,7 @@ public partial class MainViewModel : ObservableObject
         _ = CheckForUpdatesAsync();
 
         _updateCheckTimer = _dispatcherQueue.CreateTimer();
-        _updateCheckTimer.Interval = TimeSpan.FromHours(6);
+        _updateCheckTimer.Interval = TimeSpan.FromMinutes(15);
         _updateCheckTimer.Tick += (s, e) => _ = CheckForUpdatesAsync();
         _updateCheckTimer.Start();
     }
