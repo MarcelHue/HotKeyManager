@@ -20,6 +20,10 @@ public class ConfigurationService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
     
+    // SaveAsync wird an vielen Stellen fire-and-forget aufgerufen — der Lock verhindert,
+    // dass parallele Saves sich die Temp-Datei gegenseitig wegschnappen.
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
+
     public AppConfiguration Configuration { get; set; } = new();
     
     public async Task LoadAsync()
@@ -61,6 +65,7 @@ public class ConfigurationService
 
     public async Task SaveAsync()
     {
+        await _saveLock.WaitAsync();
         try
         {
             // Ensure directory exists
@@ -81,6 +86,10 @@ public class ConfigurationService
         catch (Exception ex)
         {
             App.Current.LogService.Error("Fehler beim Speichern der Konfiguration", ex);
+        }
+        finally
+        {
+            _saveLock.Release();
         }
     }
     
