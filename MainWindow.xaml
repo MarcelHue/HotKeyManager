@@ -43,6 +43,30 @@
 
             <NavigationView.PaneFooter>
                 <StackPanel Margin="16,0,16,8" Spacing="8">
+
+                    <!-- Permanenter Update-Hinweis, solange ein Update verfuegbar ist -->
+                    <Button Style="{ThemeResource AccentButtonStyle}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="12,10"
+                            Visibility="{x:Bind ViewModel.IsUpdateBannerVisible, Mode=OneWay}"
+                            Command="{x:Bind ViewModel.UpdateNowCommand}"
+                            IsEnabled="{x:Bind ViewModel.IsUpdateButtonEnabled, Mode=OneWay}"
+                            ToolTipService.ToolTip="Update herunterladen und installieren — die App startet danach neu">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE896;" FontSize="16" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.UpdateBannerText, Mode=OneWay}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Bind ViewModel.UpdateButtonText, Mode=OneWay}"
+                                           FontSize="11"
+                                           Opacity="0.9" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+
                     <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
@@ -85,7 +109,6 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -97,21 +120,7 @@
                          Severity="Error"
                          Margin="16,8,16,0" />
 
-                <!-- Update-Benachrichtigung -->
-                <InfoBar Grid.Row="1"
-                         Severity="Informational"
-                         Title="Update verfügbar"
-                         Margin="16,8,16,0"
-                         Message="{x:Bind ViewModel.UpdateBannerText, Mode=OneWay}"
-                         IsOpen="{x:Bind ViewModel.IsUpdateBannerVisible, Mode=TwoWay}">
-                    <InfoBar.ActionButton>
-                        <Button Content="{x:Bind ViewModel.UpdateButtonText, Mode=OneWay}"
-                                Command="{x:Bind ViewModel.UpdateNowCommand}"
-                                IsEnabled="{x:Bind ViewModel.IsUpdateButtonEnabled, Mode=OneWay}" />
-                    </InfoBar.ActionButton>
-                </InfoBar>
-
-                <Frame x:Name="ContentFrame" Grid.Row="2" Navigated="ContentFrame_Navigated" />
+                <Frame x:Name="ContentFrame" Grid.Row="1" Navigated="ContentFrame_Navigated" />
             </Grid>
         </NavigationView>
     </Grid>
