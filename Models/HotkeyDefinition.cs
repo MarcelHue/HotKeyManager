@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace HotKeyManager.Models;
 
@@ -46,6 +47,7 @@ public class HotkeyDefinition : INotifyPropertyChanged
     /// <summary>Zielfenster-Titel mit Wildcard-Support (z.B. "*Editor*"). Null = beliebig.</summary>
     public string? TargetWindowTitle { get; set; }
     
+    [JsonIgnore]
     public string KeyDisplayText
     {
         get

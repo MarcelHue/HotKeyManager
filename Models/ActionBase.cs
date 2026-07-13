@@ -10,7 +10,10 @@ namespace HotKeyManager.Models;
 [JsonDerivedType(typeof(SendTextAction), "sendtext")]
 public abstract class ActionBase
 {
+    [JsonIgnore]
     public abstract ActionType Type { get; }
+    [JsonIgnore]
     public abstract string DisplayName { get; }
+    [JsonIgnore]
     public abstract string Description { get; }
 }

@@ -4,104 +4,106 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:HotKeyManager"
-    xmlns:views="using:HotKeyManager.Views"
     Title="HotKey Manager">
-    
-    <Grid Background="{StaticResource BackgroundBrush}">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        
-        <!-- Navigation Sidebar -->
-        <Border Grid.Column="0" 
-                Background="#0D1B2A"
-                Padding="0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                
-                <!-- App Header -->
-                <StackPanel Grid.Row="0" Padding="24,32,24,24">
-                    <TextBlock Text="⌨️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12" />
-                    <TextBlock Text="HotKey Manager" 
-                               FontSize="22" 
-                               FontWeight="Bold" 
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               HorizontalAlignment="Center" />
-                    <TextBlock Text="Globale Tastenkürzel verwalten" 
-                               FontSize="12" 
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,4,0,0" />
-                </StackPanel>
-                
-                <!-- Navigation Items -->
-                <StackPanel Grid.Row="1" Spacing="4" Padding="12,0">
-                    <Button x:Name="NavHotkeysButton" 
-                            Click="NavHotkeys_Click"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Left"
-                            Background="Transparent"
-                            Padding="16,14"
-                            CornerRadius="10">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <FontIcon Glyph="&#xE765;" FontSize="18" Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="Hotkeys" FontSize="15" Foreground="{StaticResource TextPrimaryBrush}" />
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button x:Name="NavSettingsButton" 
-                            Click="NavSettings_Click"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Left"
-                            Background="Transparent"
-                            Padding="16,14"
-                            CornerRadius="10">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <FontIcon Glyph="&#xE713;" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="Einstellungen" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-                
-                <!-- Footer Info -->
-                <StackPanel Grid.Row="2" Padding="24" Spacing="8">
-                    <Border Background="#1B2838" CornerRadius="8" Padding="12">
+
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Custom TitleBar (Drag-Area) -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE765;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
+                <TextBlock Text="HotKey Manager"
+                           Style="{ThemeResource CaptionTextBlockStyle}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <NavigationView x:Name="NavView"
+                        Grid.Row="1"
+                        PaneDisplayMode="Left"
+                        OpenPaneLength="260"
+                        IsSettingsVisible="True"
+                        IsPaneToggleButtonVisible="False"
+                        IsBackButtonVisible="Auto"
+                        IsBackEnabled="False"
+                        SelectionChanged="NavView_SelectionChanged"
+                        BackRequested="NavView_BackRequested">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Name="HotkeysNavItem" Content="Hotkeys" Tag="hotkeys">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE765;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <NavigationView.PaneFooter>
+                <StackPanel Margin="16,0,16,8" Spacing="8">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="12">
                         <StackPanel Spacing="8">
-                            <!-- Hook Status -->
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Hook Status" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Text="Hook Status"
+                                           FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Ellipse Width="8" Height="8" Fill="#4ADE80" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="StatusText" Text="Aktiv" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <Ellipse Width="8" Height="8"
+                                             Fill="{x:Bind ViewModel.HookStatusBrush, Mode=OneWay}"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Bind ViewModel.HookStatusText, Mode=OneWay}"
+                                               FontSize="13" />
                                 </StackPanel>
                             </StackPanel>
-
-                            <!-- Driver Status -->
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Kernel-Treiber" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Text="Kernel-Treiber"
+                                           FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Ellipse x:Name="DriverStatusIndicator" Width="8" Height="8" Fill="#6B7280" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="DriverStatusText" Text="Nicht installiert" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <Ellipse Width="8" Height="8"
+                                             Fill="{x:Bind ViewModel.DriverStatusBrush, Mode=OneWay}"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Bind ViewModel.DriverStatusText, Mode=OneWay}"
+                                               FontSize="13" />
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="Version 1.0.0" 
-                               FontSize="11" 
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                    <TextBlock Text="{x:Bind ViewModel.VersionText}"
+                               FontSize="11"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                HorizontalAlignment="Center" />
                 </StackPanel>
+            </NavigationView.PaneFooter>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Update-Benachrichtigung -->
+                <InfoBar Grid.Row="0"
+                         Severity="Informational"
+                         Title="Update verfügbar"
+                         Margin="16,8,16,0"
+                         Message="{x:Bind ViewModel.UpdateBannerText, Mode=OneWay}"
+                         IsOpen="{x:Bind ViewModel.IsUpdateBannerVisible, Mode=TwoWay}">
+                    <InfoBar.ActionButton>
+                        <Button Content="{x:Bind ViewModel.UpdateButtonText, Mode=OneWay}"
+                                Command="{x:Bind ViewModel.UpdateNowCommand}"
+                                IsEnabled="{x:Bind ViewModel.IsUpdateButtonEnabled, Mode=OneWay}" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <Frame x:Name="ContentFrame" Grid.Row="1" Navigated="ContentFrame_Navigated" />
             </Grid>
-        </Border>
-        
-        <!-- Main Content Area -->
-        <Grid Grid.Column="1">
-            <Frame x:Name="ContentFrame" />
-        </Grid>
+        </NavigationView>
     </Grid>
 </Window>

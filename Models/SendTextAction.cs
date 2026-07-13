@@ -11,4 +11,7 @@ public class SendTextAction : ActionBase
             : Text;
     
     public string Text { get; set; } = string.Empty;
+
+    /// <summary>Verzoegerung zwischen den Zeichen in Millisekunden (Tippgeschwindigkeit).</summary>
+    public int CharDelayMs { get; set; } = 5;
 }

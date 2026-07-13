@@ -21,6 +21,7 @@ public partial class App : Application
     public HotkeyManagerService HotkeyManagerService { get; private set; } = null!;
     public ActionExecutor ActionExecutor { get; private set; } = null!;
     public AutoStartService AutoStartService { get; } = new();
+    public UpdateService UpdateService { get; } = new();
 
     public App()
     {
@@ -69,6 +70,13 @@ public partial class App : Application
     private async Task LoadConfigurationAsync()
     {
         await ConfigurationService.LoadAsync();
+        ThemeService.Apply(ConfigurationService.Configuration.Settings.Theme);
+
+        // Autostart-Registry-Eintrag auf den aktuellen Exe-Pfad auffrischen
+        // (wichtig nach einem Update oder Umzug der Installation)
+        if (ConfigurationService.Configuration.Settings.RunAtStartup)
+            AutoStartService.SetAutoStart(true);
+
         HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
         KeyboardHookService.Start();
         

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HotKeyManager.Views.ActionEditors.ProcessEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="12">
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0"
+                     Header="Programmpfad"
+                     Text="{x:Bind ViewModel.FilePath, Mode=TwoWay}"
+                     PlaceholderText="C:\Program Files\..." />
+            <Button Grid.Column="1"
+                    VerticalAlignment="Bottom"
+                    Click="BrowseFile_Click"
+                    ToolTipService.ToolTip="Datei auswählen">
+                <FontIcon Glyph="&#xE8B7;" FontSize="14" />
+            </Button>
+        </Grid>
+
+        <TextBox Header="Argumente (optional)"
+                 Text="{x:Bind ViewModel.Arguments, Mode=TwoWay}"
+                 PlaceholderText="--flag value" />
+
+        <TextBox Header="Arbeitsverzeichnis (optional)"
+                 Text="{x:Bind ViewModel.WorkingDirectory, Mode=TwoWay}"
+                 PlaceholderText="C:\..." />
+
+        <CheckBox Content="Als Administrator ausführen"
+                  IsChecked="{x:Bind ViewModel.RunAsAdmin, Mode=TwoWay}" />
+        <CheckBox Content="Versteckt starten"
+                  IsChecked="{x:Bind ViewModel.Hidden, Mode=TwoWay}" />
+    </StackPanel>
+</UserControl>

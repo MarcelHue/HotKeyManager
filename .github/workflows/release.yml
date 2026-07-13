@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Determine version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish
+        run: >
+          dotnet publish HotKeyManager.csproj
+          -c Release
+          -p:Platform=x64
+          -r win-x64
+          --self-contained
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      - name: Velopack pack
+        run: >
+          vpk pack
+          --packId HotKeyManager
+          --packVersion ${{ steps.version.outputs.version }}
+          --packDir publish
+          --mainExe HotKeyManager.exe
+          --packTitle "HotKey Manager"
+          --packAuthors MarcelHue
+          --icon icon-512.ico
+
+      - name: Upload to GitHub Release
+        run: >
+          vpk upload github
+          --repoUrl https://github.com/${{ github.repository }}
+          --publish
+          --releaseName "HotKey Manager v${{ steps.version.outputs.version }}"
+          --tag ${{ github.ref_name }}
+          --token ${{ secrets.GITHUB_TOKEN }}

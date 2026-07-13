@@ -113,6 +113,16 @@ public class HotkeyManagerService
         }
     }
 
+    /// <summary>
+    /// Persistiert den aktuellen Zustand ohne HotkeysChanged auszuloesen.
+    /// Fuer In-Place-Aenderungen, die die UI bereits per Binding anzeigt (z.B. IsEnabled-Toggle).
+    /// </summary>
+    public void SaveChanges()
+    {
+        _configService.Configuration.Hotkeys = _hotkeys.ToList();
+        _ = _configService.SaveAsync();
+    }
+
     private void SaveAndNotify()
     {
         _configService.Configuration.Hotkeys = _hotkeys.ToList();

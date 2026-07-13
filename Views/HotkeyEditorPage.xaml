@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="HotKeyManager.Views.HotkeyEditorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ae="using:HotKeyManager.Views.ActionEditors"
+    Background="Transparent">
+
+    <Page.Resources>
+        <DataTemplate x:Key="WebhookEditorTemplate">
+            <ae:WebhookEditorView />
+        </DataTemplate>
+        <DataTemplate x:Key="KeySequenceEditorTemplate">
+            <ae:KeySequenceEditorView />
+        </DataTemplate>
+        <DataTemplate x:Key="ProcessEditorTemplate">
+            <ae:ProcessEditorView />
+        </DataTemplate>
+        <DataTemplate x:Key="BatchEditorTemplate">
+            <ae:BatchEditorView />
+        </DataTemplate>
+        <DataTemplate x:Key="SendTextEditorTemplate">
+            <ae:SendTextEditorView />
+        </DataTemplate>
+
+        <ae:ActionEditorTemplateSelector x:Key="ActionEditorSelector"
+                                         WebhookTemplate="{StaticResource WebhookEditorTemplate}"
+                                         KeySequenceTemplate="{StaticResource KeySequenceEditorTemplate}"
+                                         ProcessTemplate="{StaticResource ProcessEditorTemplate}"
+                                         BatchTemplate="{StaticResource BatchEditorTemplate}"
+                                         SendTextTemplate="{StaticResource SendTextEditorTemplate}" />
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32,24,32,0">
+        <StackPanel MaxWidth="760" HorizontalAlignment="Stretch" Spacing="16" Margin="0,0,0,24">
+
+            <TextBlock Text="{x:Bind ViewModel.PageTitle}"
+                       Style="{ThemeResource TitleTextBlockStyle}" />
+
+            <InfoBar Severity="Error"
+                     IsOpen="{x:Bind ViewModel.IsErrorOpen, Mode=TwoWay}"
+                     Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                     IsClosable="True" />
+
+            <!-- Allgemein -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Allgemein" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+
+                    <TextBox Header="Name"
+                             Text="{x:Bind ViewModel.Name, Mode=TwoWay}"
+                             PlaceholderText="z.B. Browser öffnen"
+                             MaxLength="100" />
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Tastenkombination" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="12,10">
+                                <TextBlock Text="{x:Bind ViewModel.HotkeyDisplayText, Mode=OneWay}"
+                                           FontFamily="Consolas"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Command="{x:Bind ViewModel.StartKeyCaptureCommand}"
+                                    IsEnabled="{x:Bind ViewModel.IsCaptureKeyEnabled, Mode=OneWay}"
+                                    VerticalAlignment="Stretch">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE765;" FontSize="14" />
+                                    <TextBlock Text="{x:Bind ViewModel.CaptureKeyButtonText, Mode=OneWay}" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Aktion -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Aktion" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+
+                    <ComboBox Header="Aktionstyp"
+                              HorizontalAlignment="Stretch"
+                              ItemsSource="{x:Bind ViewModel.ActionEditors}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedIndex="{x:Bind ViewModel.SelectedActionIndex, Mode=TwoWay}" />
+
+                    <ContentControl Content="{x:Bind ViewModel.SelectedActionEditor, Mode=OneWay}"
+                                    ContentTemplateSelector="{StaticResource ActionEditorSelector}"
+                                    HorizontalContentAlignment="Stretch"
+                                    IsTabStop="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- Fenster-Optionen -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Fenster-Optionen" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+
+                    <RadioButtons SelectedIndex="{x:Bind ViewModel.WindowModeIndex, Mode=TwoWay}">
+                        <RadioButton Content="Keine Beschränkung" />
+                        <RadioButton Content="Nur bei aktivem Fenster auslösen" />
+                        <RadioButton Content="Tasten an Hintergrund-Fenster senden" />
+                    </RadioButtons>
+
+                    <StackPanel Spacing="12"
+                                Visibility="{x:Bind ViewModel.IsWindowTargetVisible, Mode=OneWay}">
+                        <TextBox Header="Prozessname"
+                                 Text="{x:Bind ViewModel.TargetProcessName, Mode=TwoWay}"
+                                 PlaceholderText="z.B. notepad, chrome (ohne .exe)" />
+                        <TextBox Header="Fenstertitel (optional)"
+                                 Text="{x:Bind ViewModel.TargetWindowTitle, Mode=TwoWay}"
+                                 PlaceholderText="z.B. *Editor* (* als Wildcard)" />
+                        <Button Command="{x:Bind ViewModel.CaptureWindowCommand}"
+                                IsEnabled="{x:Bind Not(ViewModel.IsCapturingWindow), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE78B;" FontSize="14" />
+                                <TextBlock Text="{x:Bind ViewModel.CaptureWindowButtonText, Mode=OneWay}" />
+                            </StackPanel>
+                        </Button>
+                        <InfoBar Severity="Informational"
+                                 Title="Fenster erfassen"
+                                 Message="Wechsle innerhalb von 3 Sekunden zum gewünschten Fenster."
+                                 IsOpen="{x:Bind ViewModel.IsCapturingWindow, Mode=OneWay}"
+                                 IsClosable="False" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Aktionen -->
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="Abbrechen"
+                        MinWidth="120"
+                        Command="{x:Bind ViewModel.CancelCommand}" />
+                <Button Content="Speichern"
+                        MinWidth="120"
+                        Style="{ThemeResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.SaveCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

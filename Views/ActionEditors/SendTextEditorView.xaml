@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HotKeyManager.Views.ActionEditors.SendTextEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="12">
+        <TextBox Header="Text"
+                 Text="{x:Bind ViewModel.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 PlaceholderText="Text, der beim Auslösen des Hotkeys getippt wird…"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="160"
+                 MaxHeight="320"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+        <TextBlock Text="{x:Bind ViewModel.StatsText, Mode=OneWay}"
+                   FontSize="12"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+        <NumberBox Header="Tippgeschwindigkeit (ms pro Zeichen)"
+                   Value="{x:Bind ViewModel.CharDelayMs, Mode=TwoWay}"
+                   Minimum="0"
+                   Maximum="500"
+                   SmallChange="5"
+                   SpinButtonPlacementMode="Inline"
+                   HorizontalAlignment="Left"
+                   MinWidth="260" />
+
+        <InfoBar Severity="Informational"
+                 Title="Hinweis"
+                 Message="Der Text wird als simulierte Tastatureingabe getippt. Zeilenumbrüche werden als Enter gesendet, Umlaute und Sonderzeichen funktionieren (Unicode)."
+                 IsOpen="True"
+                 IsClosable="False" />
+    </StackPanel>
+</UserControl>

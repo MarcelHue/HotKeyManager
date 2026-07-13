@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HotKeyManager.Views.ActionEditors.WebhookEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="12">
+        <TextBox Header="URL"
+                 Text="{x:Bind ViewModel.Url, Mode=TwoWay}"
+                 PlaceholderText="https://api.example.com/webhook" />
+
+        <ComboBox Header="HTTP-Methode"
+                  HorizontalAlignment="Stretch"
+                  SelectedIndex="{x:Bind ViewModel.MethodIndex, Mode=TwoWay}">
+            <ComboBoxItem Content="GET" />
+            <ComboBoxItem Content="POST" />
+            <ComboBoxItem Content="PUT" />
+            <ComboBoxItem Content="DELETE" />
+            <ComboBoxItem Content="PATCH" />
+        </ComboBox>
+
+        <ComboBox Header="Content-Type"
+                  HorizontalAlignment="Stretch"
+                  SelectedIndex="{x:Bind ViewModel.ContentTypeIndex, Mode=TwoWay}">
+            <ComboBoxItem Content="application/json" />
+            <ComboBoxItem Content="application/x-www-form-urlencoded" />
+            <ComboBoxItem Content="text/plain" />
+        </ComboBox>
+
+        <TextBox Header="Body (optional)"
+                 Text="{x:Bind ViewModel.Body, Mode=TwoWay}"
+                 PlaceholderText="{}{&quot;key&quot;: &quot;value&quot;}"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="100"
+                 MaxHeight="240"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+    </StackPanel>
+</UserControl>

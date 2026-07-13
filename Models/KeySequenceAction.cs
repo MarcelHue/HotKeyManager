@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace HotKeyManager.Models;
 
 public class KeySequenceAction : ActionBase
@@ -26,6 +28,7 @@ public class KeyStroke
     /// <summary>
     /// Gibt den Anzeigenamen mit EventType-Symbol zurück (für Advanced Mode)
     /// </summary>
+    [JsonIgnore]
     public string DisplayTextWithType => EventType switch
     {
         KeyEventType.KeyDown => $"↓ {DisplayText}",

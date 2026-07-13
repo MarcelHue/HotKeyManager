@@ -55,3 +55,6 @@ TestResults/
 # OS
 Thumbs.db
 Desktop.ini
+
+# Velopack local pack output
+Releases/

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HotKeyManager.Views.ActionEditors.KeySequenceEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:HotKeyManager.Models">
+
+    <StackPanel Spacing="12">
+        <CheckBox Content="Erweiterter Modus (separate KeyDown/KeyUp für Kombinationen)"
+                  IsChecked="{x:Bind ViewModel.IsAdvancedMode, Mode=TwoWay}" />
+        <CheckBox Content="Kernel-Mode Injektion (für Apps die synthetische Tasten filtern)"
+                  IsChecked="{x:Bind ViewModel.UseKernelInjection, Mode=TwoWay}" />
+
+        <InfoBar Severity="Warning"
+                 Title="Treiber nicht aktiv"
+                 Message="Der Interception-Treiber ist nicht aktiv. Kernel-Mode Injektion ist nicht verfügbar."
+                 IsOpen="{x:Bind ViewModel.IsKernelWarningVisible, Mode=OneWay}"
+                 IsClosable="False" />
+
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Tastenfolge"
+                       Style="{ThemeResource BodyStrongTextBlockStyle}"
+                       VerticalAlignment="Center" />
+
+            <!-- Simple Mode: Einzelne Taste erfassen -->
+            <Button Grid.Column="1"
+                    Command="{x:Bind ViewModel.AddKeyStrokeCommand}"
+                    IsEnabled="{x:Bind ViewModel.IsAddKeyEnabled, Mode=OneWay}"
+                    Visibility="{x:Bind CollapsedIf(ViewModel.IsAdvancedMode), Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE710;" FontSize="12" />
+                    <TextBlock Text="{x:Bind ViewModel.AddKeyButtonText, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+
+            <!-- Advanced Mode: Aufnahme starten/stoppen -->
+            <Button Grid.Column="2"
+                    Command="{x:Bind ViewModel.ToggleRecordingCommand}"
+                    Background="{x:Bind RecordBackground(ViewModel.IsRecordingActive), Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.IsAdvancedMode, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="{x:Bind ViewModel.RecordButtonGlyph, Mode=OneWay}" FontSize="12" />
+                    <TextBlock Text="{x:Bind ViewModel.RecordButtonText, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <InfoBar Severity="Informational"
+                 Title="Erweiterter Modus"
+                 Message="Klicke 'Aufnahme starten', drücke deine Tastenkombination, dann 'Aufnahme stoppen'. Jedes KeyDown und KeyUp wird separat aufgezeichnet."
+                 IsOpen="{x:Bind ViewModel.IsAdvancedMode, Mode=OneWay}"
+                 IsClosable="False" />
+
+        <ListView ItemsSource="{x:Bind ViewModel.KeyStrokes, Mode=OneWay}"
+                  SelectionMode="None"
+                  CanReorderItems="True"
+                  AllowDrop="True"
+                  CanDragItems="True">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:KeyStroke">
+                    <Grid Padding="0,4" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <FontIcon Grid.Column="0"
+                                  Glyph="&#xE700;"
+                                  FontSize="12"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  VerticalAlignment="Center"
+                                  ToolTipService.ToolTip="Ziehen zum Umsortieren" />
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{x:Bind DisplayTextWithType}"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Consolas" />
+
+                        <NumberBox Grid.Column="2"
+                                   Header="Verzögerung (ms)"
+                                   Value="{x:Bind DelayAfterMs, Mode=TwoWay}"
+                                   Minimum="0"
+                                   Maximum="10000"
+                                   SpinButtonPlacementMode="Compact" />
+
+                        <Button Grid.Column="3"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                VerticalAlignment="Center"
+                                Click="RemoveKeyStroke_Click"
+                                ToolTipService.ToolTip="Entfernen">
+                            <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#EF4444" />
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <TextBlock Text="Noch keine Tasten hinzugefügt"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   FontStyle="Italic"
+                   Visibility="{x:Bind ViewModel.IsEmptyHintVisible, Mode=OneWay}" />
+    </StackPanel>
+</UserControl>

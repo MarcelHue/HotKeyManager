@@ -1,70 +1,31 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Text.Json;
 using HotKeyManager.Models;
 using HotKeyManager.Services;
-using System.Text.Json;
-using Windows.Storage.Pickers;
+using HotKeyManager.ViewModels;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using Windows.Storage;
+using Windows.Storage.Pickers;
 using WinRT.Interop;
 
 namespace HotKeyManager.Views;
 
 public sealed partial class SettingsPage : Page
 {
+    public SettingsViewModel ViewModel { get; } = new();
+
     public SettingsPage()
     {
         this.InitializeComponent();
-        LoadSettings();
-        UpdateDriverStatus();
     }
 
-    private void LoadSettings()
+    protected override void OnNavigatedTo(NavigationEventArgs e)
     {
-        AutoStartToggle.Toggled -= AutoStartToggle_Toggled;
-        MinimizeToTrayToggle.Toggled -= MinimizeToTrayToggle_Toggled;
-        StartMinimizedToggle.Toggled -= StartMinimizedToggle_Toggled;
-
-        var settings = App.Current.ConfigurationService.Configuration.Settings;
-        AutoStartToggle.IsOn = App.Current.AutoStartService.IsAutoStartEnabled;
-        MinimizeToTrayToggle.IsOn = settings.MinimizeToTray;
-        StartMinimizedToggle.IsOn = settings.StartMinimized;
-
-        AutoStartToggle.Toggled += AutoStartToggle_Toggled;
-        MinimizeToTrayToggle.Toggled += MinimizeToTrayToggle_Toggled;
-        StartMinimizedToggle.Toggled += StartMinimizedToggle_Toggled;
+        base.OnNavigatedTo(e);
+        ViewModel.Load();
     }
 
-    private async void SaveSettings()
-    {
-        await App.Current.ConfigurationService.SaveAsync();
-    }
-
-    private void AutoStartToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        var success = App.Current.AutoStartService.SetAutoStart(AutoStartToggle.IsOn);
-        if (!success)
-        {
-            AutoStartToggle.Toggled -= AutoStartToggle_Toggled;
-            AutoStartToggle.IsOn = !AutoStartToggle.IsOn;
-            AutoStartToggle.Toggled += AutoStartToggle_Toggled;
-        }
-
-        App.Current.ConfigurationService.Configuration.Settings.RunAtStartup = AutoStartToggle.IsOn;
-        SaveSettings();
-    }
-
-    private void MinimizeToTrayToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        App.Current.ConfigurationService.Configuration.Settings.MinimizeToTray = MinimizeToTrayToggle.IsOn;
-        SaveSettings();
-    }
-
-    private void StartMinimizedToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        App.Current.ConfigurationService.Configuration.Settings.StartMinimized = StartMinimizedToggle.IsOn;
-        SaveSettings();
-    }
-    
     private async void ExportConfig_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FileSavePicker
@@ -73,21 +34,21 @@ public sealed partial class SettingsPage : Page
             SuggestedFileName = "hotkey-config"
         };
         picker.FileTypeChoices.Add("JSON", new List<string> { ".json" });
-        
+
         var hwnd = WindowNative.GetWindowHandle(App.Current.MainWindow);
         InitializeWithWindow.Initialize(picker, hwnd);
-        
+
         var file = await picker.PickSaveFileAsync();
         if (file != null)
         {
             var config = App.Current.ConfigurationService.Configuration;
             var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
             await FileIO.WriteTextAsync(file, json);
-            
+
             await ShowMessage("Export erfolgreich", "Die Konfiguration wurde exportiert.");
         }
     }
-    
+
     private async void ImportConfig_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FileOpenPicker
@@ -95,10 +56,10 @@ public sealed partial class SettingsPage : Page
             SuggestedStartLocation = PickerLocationId.DocumentsLibrary
         };
         picker.FileTypeFilter.Add(".json");
-        
+
         var hwnd = WindowNative.GetWindowHandle(App.Current.MainWindow);
         InitializeWithWindow.Initialize(picker, hwnd);
-        
+
         var file = await picker.PickSingleFileAsync();
         if (file != null)
         {
@@ -106,14 +67,15 @@ public sealed partial class SettingsPage : Page
             {
                 var json = await FileIO.ReadTextAsync(file);
                 var config = JsonSerializer.Deserialize<AppConfiguration>(json);
-                
+
                 if (config != null)
                 {
                     App.Current.ConfigurationService.Configuration = config;
                     await App.Current.ConfigurationService.SaveAsync();
                     App.Current.HotkeyManagerService.LoadHotkeys(config.Hotkeys);
-                    LoadSettings();
-                    
+                    ThemeService.Apply(config.Settings.Theme);
+                    ViewModel.Load();
+
                     await ShowMessage("Import erfolgreich", $"{config.Hotkeys.Count} Hotkeys wurden importiert.");
                 }
             }
@@ -123,7 +85,7 @@ public sealed partial class SettingsPage : Page
             }
         }
     }
-    
+
     private async void ResetConfig_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new ContentDialog
@@ -135,24 +97,23 @@ public sealed partial class SettingsPage : Page
             CloseButtonText = "Abbrechen",
             DefaultButton = ContentDialogButton.Close
         };
-        
+
         var result = await dialog.ShowAsync();
-        
+
         if (result == ContentDialogResult.Primary)
         {
             await App.Current.ConfigurationService.ResetAsync();
             App.Current.HotkeyManagerService.LoadHotkeys(new List<HotkeyDefinition>());
-            LoadSettings();
-            
+            ThemeService.Apply(App.Current.ConfigurationService.Configuration.Settings.Theme);
+            ViewModel.Load();
+
             await ShowMessage("Zurückgesetzt", "Alle Daten wurden gelöscht.");
         }
     }
-    
+
     private async void InstallDriver_Click(object sender, RoutedEventArgs e)
     {
-        var isInstalled = InterceptionService.IsDriverInstalled();
-
-        if (isInstalled)
+        if (ViewModel.IsDriverInstalled)
         {
             var confirmDialog = new ContentDialog
             {
@@ -166,14 +127,7 @@ public sealed partial class SettingsPage : Page
 
             if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary) return;
 
-            InstallDriverButton.IsEnabled = false;
-            InstallDriverButtonText.Text = "Wird deinstalliert...";
-
-            var (success, message) = await InterceptionService.UninstallDriverAsync();
-
-            InstallDriverButton.IsEnabled = true;
-            UpdateDriverStatus();
-            UpdateMainWindowDriverStatus();
+            var (success, message) = await ViewModel.UninstallDriverAsync();
 
             if (success)
                 await ShowRestartMessage("Treiber deinstalliert", message);
@@ -194,14 +148,7 @@ public sealed partial class SettingsPage : Page
 
             if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary) return;
 
-            InstallDriverButton.IsEnabled = false;
-            InstallDriverButtonText.Text = "Wird installiert...";
-
-            var (success, message) = await InterceptionService.InstallDriverAsync();
-
-            InstallDriverButton.IsEnabled = true;
-            UpdateDriverStatus();
-            UpdateMainWindowDriverStatus();
+            var (success, message) = await ViewModel.InstallDriverAsync();
 
             if (success)
                 await ShowRestartMessage("Treiber installiert", message);
@@ -210,35 +157,49 @@ public sealed partial class SettingsPage : Page
         }
     }
 
-    private void UpdateDriverStatus()
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
-        if (InterceptionService.IsDriverActive())
-        {
-            DriverStatusInfoBar.Severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Success;
-            DriverStatusInfoBar.Message = "Treiber ist aktiv und einsatzbereit.";
-            InstallDriverButtonText.Text = "Deinstallieren";
-            InstallDriverIcon.Glyph = "\uE74D";
-        }
-        else if (InterceptionService.IsDriverInstalled())
-        {
-            DriverStatusInfoBar.Severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning;
-            DriverStatusInfoBar.Message = "Treiber ist installiert, aber ein Neustart ist erforderlich.";
-            InstallDriverButtonText.Text = "Deinstallieren";
-            InstallDriverIcon.Glyph = "\uE74D";
-        }
-        else
-        {
-            DriverStatusInfoBar.Severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Informational;
-            DriverStatusInfoBar.Message = "Treiber ist nicht installiert. Für Kernel-Mode Injektion wird er benötigt.";
-            InstallDriverButtonText.Text = "Installieren";
-            InstallDriverIcon.Glyph = "\uE9F5";
-        }
-    }
+        var updateService = App.Current.UpdateService;
 
-    private void UpdateMainWindowDriverStatus()
-    {
-        if (App.Current.MainWindow is MainWindow mainWindow)
-            mainWindow.UpdateDriverStatus();
+        if (!updateService.IsSupported)
+        {
+            await ShowMessage(
+                "Update-Check nicht verfügbar",
+                "Die App läuft aus einem Build-Verzeichnis. Der Update-Check funktioniert nur in der installierten Version.");
+            return;
+        }
+
+        CheckUpdatesButton.IsEnabled = false;
+        CheckUpdatesButtonText.Text = "Prüfe…";
+
+        var updateInfo = await updateService.CheckForUpdatesAsync();
+
+        CheckUpdatesButton.IsEnabled = true;
+        CheckUpdatesButtonText.Text = "Nach Updates suchen";
+
+        if (updateInfo == null)
+        {
+            await ShowMessage("Kein Update verfügbar", $"{ViewModel.VersionText} ist aktuell.");
+            return;
+        }
+
+        var mainViewModel = (App.Current.MainWindow as MainWindow)?.ViewModel;
+        mainViewModel?.ShowUpdateAvailable(updateInfo);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = $"Version {updateInfo.TargetFullRelease.Version} verfügbar",
+            Content = "Das Update kann jetzt heruntergeladen und installiert werden. Die App startet danach automatisch neu.",
+            PrimaryButtonText = "Jetzt aktualisieren",
+            CloseButtonText = "Später",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary && mainViewModel != null)
+        {
+            await mainViewModel.UpdateNowCommand.ExecuteAsync(null);
+        }
     }
 
     private async Task ShowRestartMessage(string title, string message)

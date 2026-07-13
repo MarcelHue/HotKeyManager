@@ -16,6 +16,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Version wird im Release-Workflow aus dem Git-Tag ueberschrieben (-p:Version=x.y.z) -->
+    <Version>1.1.0</Version>
+
+    <!-- Eigener Main-Einstiegspunkt in Program.cs (Velopack muss vor dem XAML-Start laufen) -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +31,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="InputInterceptor" Version="2.2.1" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>

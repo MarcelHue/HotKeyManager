@@ -435,9 +435,10 @@ public class ActionExecutor
                 inputs[1].u.ki.dwExtraInfo = UIntPtr.Zero;
                 
                 SendInput(2, inputs, Marshal.SizeOf<INPUT>());
-                
-                // Kleine Verzoegerung zwischen Zeichen fuer Stabilitaet
-                await Task.Delay(5);
+
+                // Verzoegerung zwischen Zeichen (konfigurierbare Tippgeschwindigkeit)
+                if (action.CharDelayMs > 0)
+                    await Task.Delay(action.CharDelayMs);
             }
         }
         catch (Exception ex)
@@ -468,9 +469,10 @@ public class ActionExecutor
             {
                 // WM_CHAR senden fuer jeden Buchstaben
                 PostMessage(hwnd, WM_CHAR, (IntPtr)c, IntPtr.Zero);
-                
-                // Kleine Verzoegerung zwischen Zeichen
-                await Task.Delay(5);
+
+                // Verzoegerung zwischen Zeichen (konfigurierbare Tippgeschwindigkeit)
+                if (action.CharDelayMs > 0)
+                    await Task.Delay(action.CharDelayMs);
             }
         }
         catch (Exception ex)
