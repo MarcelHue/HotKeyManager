@@ -105,6 +105,13 @@ public partial class App : Application
 
             ThemeService.Apply(ConfigurationService.Configuration.Settings.Theme);
 
+            // Alt-Aktionen einmalig in Baustein-Makros ueberfuehren (seit v1.3.0)
+            if (LegacyActionMigration.WrapLegacyActions(ConfigurationService.Configuration.Hotkeys))
+            {
+                LogService.Info("Alt-Aktionen wurden in Baustein-Makros migriert.");
+                await ConfigurationService.SaveAsync();
+            }
+
             // Autostart-Registry-Eintrag auf den aktuellen Exe-Pfad auffrischen
             // (wichtig nach einem Update oder Umzug der Installation)
             if (ConfigurationService.Configuration.Settings.RunAtStartup)

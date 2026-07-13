@@ -70,6 +70,7 @@ public sealed partial class SettingsPage : Page
 
                 if (config != null)
                 {
+                    LegacyActionMigration.WrapLegacyActions(config.Hotkeys);
                     App.Current.ConfigurationService.Configuration = config;
                     await App.Current.ConfigurationService.SaveAsync();
                     App.Current.HotkeyManagerService.LoadHotkeys(config.Hotkeys);

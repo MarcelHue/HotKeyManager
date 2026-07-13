@@ -39,12 +39,8 @@ public sealed partial class HotkeyListPage : Page
 
     private void AddTextMacro_Click(object sender, RoutedEventArgs e)
     {
+        // Legt ein Makro mit vorbereitetem Text-Baustein an
         Frame.Navigate(typeof(HotkeyEditorPage), new EditorNavArgs { PreselectType = ActionType.SendText });
-    }
-
-    private void AddMacro_Click(object sender, RoutedEventArgs e)
-    {
-        Frame.Navigate(typeof(HotkeyEditorPage), new EditorNavArgs { PreselectType = ActionType.Macro });
     }
 
     private void EditHotkey_Click(object sender, RoutedEventArgs e)

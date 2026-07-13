@@ -9,7 +9,11 @@ public class MacroAction : ActionBase
 {
     public override ActionType Type => ActionType.Macro;
     public override string DisplayName => "Makro";
-    public override string Description => Steps.Count == 1 ? "1 Baustein" : $"{Steps.Count} Bausteine";
+    // Bei genau einem Baustein die Beschreibung des Bausteins zeigen (aussagekraeftiger
+    // in der Liste, v.a. fuer migrierte Alt-Aktionen)
+    public override string Description => Steps.Count == 1
+        ? Steps[0].Description
+        : $"{Steps.Count} Bausteine";
 
     public List<ActionBase> Steps { get; set; } = new();
 

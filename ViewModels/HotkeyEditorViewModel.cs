@@ -87,13 +87,10 @@ public partial class HotkeyEditorViewModel : ObservableObject
         _keyboardHook = keyboardHook ?? App.Current.KeyboardHookService;
         _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
 
+        // Seit v1.3.0 ist das Baustein-Makro der einzige Top-Level-Aktionstyp —
+        // alle frueheren Aktionstypen existieren als Bausteine darin weiter.
         ActionEditors = new ActionEditorViewModelBase[]
         {
-            new WebhookEditorViewModel(),
-            new KeySequenceEditorViewModel(),
-            new ProcessEditorViewModel(),
-            new BatchEditorViewModel(),
-            new SendTextEditorViewModel(),
             new MacroEditorViewModel()
         };
 
@@ -102,11 +99,14 @@ public partial class HotkeyEditorViewModel : ObservableObject
             _original = hotkey;
             LoadHotkey(hotkey);
         }
-        else if (args?.PreselectType is { } preselect)
+        else if (args?.PreselectType is { } preselect && preselect != ActionType.Macro)
         {
-            SelectIndexFor(preselect);
+            // Schnelleinstieg (z.B. "Neues Text-Makro"): passenden Baustein direkt anlegen
+            MacroEditor.AddStep(preselect);
         }
     }
+
+    private MacroEditorViewModel MacroEditor => (MacroEditorViewModel)ActionEditors[0];
 
     private void LoadHotkey(HotkeyDefinition hotkey)
     {
@@ -121,20 +121,11 @@ public partial class HotkeyEditorViewModel : ObservableObject
 
         if (hotkey.Action != null)
         {
-            SelectIndexFor(hotkey.Action.Type);
-            SelectedActionEditor?.LoadFrom(hotkey.Action);
-        }
-    }
-
-    private void SelectIndexFor(ActionType type)
-    {
-        for (int i = 0; i < ActionEditors.Count; i++)
-        {
-            if (ActionEditors[i].Type == type)
-            {
-                SelectedActionIndex = i;
-                return;
-            }
+            // Noch nicht migrierte Alt-Aktion (z.B. aus altem Import) transparent
+            // als Ein-Baustein-Makro laden
+            var macro = hotkey.Action as MacroAction
+                ?? new MacroAction { Steps = new List<ActionBase> { hotkey.Action } };
+            MacroEditor.LoadFrom(macro);
         }
     }
 

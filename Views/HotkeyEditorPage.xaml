@@ -7,31 +7,13 @@
     Background="Transparent">
 
     <Page.Resources>
-        <DataTemplate x:Key="WebhookEditorTemplate">
-            <ae:WebhookEditorView />
-        </DataTemplate>
-        <DataTemplate x:Key="KeySequenceEditorTemplate">
-            <ae:KeySequenceEditorView />
-        </DataTemplate>
-        <DataTemplate x:Key="ProcessEditorTemplate">
-            <ae:ProcessEditorView />
-        </DataTemplate>
-        <DataTemplate x:Key="BatchEditorTemplate">
-            <ae:BatchEditorView />
-        </DataTemplate>
-        <DataTemplate x:Key="SendTextEditorTemplate">
-            <ae:SendTextEditorView />
-        </DataTemplate>
+        <!-- Top-Level gibt es nur noch das Baustein-Makro; die uebrigen Editor-Templates
+             leben als Baustein-Templates in MacroEditorView.Resources -->
         <DataTemplate x:Key="MacroEditorTemplate">
             <ae:MacroEditorView />
         </DataTemplate>
 
         <ae:ActionEditorTemplateSelector x:Key="ActionEditorSelector"
-                                         WebhookTemplate="{StaticResource WebhookEditorTemplate}"
-                                         KeySequenceTemplate="{StaticResource KeySequenceEditorTemplate}"
-                                         ProcessTemplate="{StaticResource ProcessEditorTemplate}"
-                                         BatchTemplate="{StaticResource BatchEditorTemplate}"
-                                         SendTextTemplate="{StaticResource SendTextEditorTemplate}"
                                          MacroTemplate="{StaticResource MacroEditorTemplate}" />
     </Page.Resources>
 
@@ -87,16 +69,10 @@
                 </StackPanel>
             </Border>
 
-            <!-- Aktion -->
+            <!-- Aktion: Baustein-Makro -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Aktion" Style="{ThemeResource BodyStrongTextBlockStyle}" />
-
-                    <ComboBox Header="Aktionstyp"
-                              HorizontalAlignment="Stretch"
-                              ItemsSource="{x:Bind ViewModel.ActionEditors}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedIndex="{x:Bind ViewModel.SelectedActionIndex, Mode=TwoWay}" />
 
                     <ContentControl Content="{x:Bind ViewModel.SelectedActionEditor, Mode=OneWay}"
                                     ContentTemplateSelector="{StaticResource ActionEditorSelector}"

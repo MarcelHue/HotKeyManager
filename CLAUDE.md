@@ -69,6 +69,8 @@ Windows-native application for managing global hotkeys system-wide. Users define
 - `DelayAction` — Wait N ms (mainly as macro step)
 - `MacroAction` — Composite: ordered `Steps` list of any of the above (no macro nesting), executed top-down with optional global `StepDelayMs` between steps. Editor reuses the per-type editor UserControls as reorderable expander blocks (`MacroEditorView`).
 
+**Since v1.3.0 `MacroAction` is the ONLY top-level action type** — the editor offers no type dropdown anymore; all other types exist solely as macro steps. `LegacyActionMigration.WrapLegacyActions` wraps old single actions into one-step macros on app start and on config import; the editor also wraps transparently when loading an unmigrated hotkey.
+
 ### Hotkey Targeting
 - `WindowTargetMode`: `None`, `OnlyWhenActive`, `SendToBackground`
 - Wildcard patterns on window title (`*pattern*`)
