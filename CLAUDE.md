@@ -61,7 +61,7 @@ Windows-native application for managing global hotkeys system-wide. Users define
 | `UpdateService` | Velopack update check/download against GitHub Releases (no-op in dev builds) |
 | `MidiService` | MIDI in/out via **WinMM** (not WinRT — the MIDI 2.0 stack hides devices from `Windows.Devices.Midi`); 5 s rescan for hot-plug; NoteOn/CC input triggers hotkeys via optional `HotkeyDefinition.MidiTrigger` (keyboard and MIDI can coexist), `SendAsync` drives `MidiSendAction`. Always enumerate before opening a port in the same process, else BADDEVICEID |
 | `AudioService` | Microphone mute (set/toggle) for the default capture device via Core Audio COM |
-| `MidiPresetService` | Loads documented MIDI command presets (JSON) from `Presets\midi` next to the exe and from `%APPDATA%\HotKeyManager\Presets\midi`; user presets override built-ins by name. Import copies a file into the user folder after validating it |
+| `MidiPresetService` | Loads documented MIDI command presets (JSON) from `Presets\midi` next to the exe and from `%APPDATA%\HotKeyManager\Presets\midi`; user presets override built-ins by name. Import copies a file into the user folder after validating it. `Save()` always writes to the user folder, so edits survive app updates and the bundled preset stays untouched — the editor uses this to add/update entries and mark them verified |
 
 ### Action Types (Models/ — polymorphic via `$type` in JSON)
 - `WebhookAction` — HTTP request (GET/POST/PUT/DELETE/PATCH)
@@ -71,7 +71,7 @@ Windows-native application for managing global hotkeys system-wide. Users define
 - `BatchAction` — Execute CMD.exe batch command
 - `DelayAction` — Wait N ms (mainly as macro step)
 - `SystemAction` — Windows media keys (play/pause, next/prev, volume) + microphone mute via Core Audio (`AudioService`)
-- `MidiSendAction` — Send NoteOn/CC to a MIDI output device (`MidiService.SendAsync`), e.g. back to the Rodecaster
+- `MidiSendAction` — Send NoteOn/CC to a MIDI output device (`MidiService.SendAsync`), e.g. back to the Rodecaster. `ToggleValues` alternates between `Value`/`ValueB` on each run and persists `LastSentWasB`, for devices with separate on/off commands whose state cannot be read back (Rodecaster: CC 27 value 1 = muted, 0 = unmuted)
 - `MacroAction` — Composite: ordered `Steps` list of any of the above (no macro nesting), executed top-down with optional global `StepDelayMs` between steps. Editor reuses the per-type editor UserControls as reorderable expander blocks (`MacroEditorView`).
 
 **Since v1.3.0 `MacroAction` is the ONLY top-level action type** — the editor offers no type dropdown anymore; all other types exist solely as macro steps. `LegacyActionMigration.WrapLegacyActions` wraps old single actions into one-step macros on app start and on config import; the editor also wraps transparently when loading an unmigrated hotkey.
@@ -142,7 +142,7 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 
 | View | Purpose |
 |---|---|
-| `HotkeyListPage` | List of hotkeys: search, toggle, run, edit, delete; "Neues Text-Makro" quick entry |
+| `HotkeyListPage` | Hotkeys grouped into collapsible folders (`HotkeyDefinition.Group`, one level). Per row: drag handle (reorder + drop onto another folder), trigger badge with a flyout to (re)capture key/MIDI inline, inline rename (double-tap or pencil), toggle, run, folder assign, edit, duplicate, delete. Search disables reordering |
 | `HotkeyEditorPage` | Create / edit a hotkey (full page, scrolls; key capture + window capture) |
 | `Views/ActionEditors/*` | One UserControl per action type, selected via `ActionEditorTemplateSelector` |
 | `SettingsPage` | Theme, startup/tray, kernel driver, import/export, update check |

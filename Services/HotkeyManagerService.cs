@@ -141,6 +141,27 @@ public class HotkeyManagerService
     }
 
     /// <summary>
+    /// Setzt die Reihenfolge der Hotkeys neu (Drag &amp; Drop in der Liste) und speichert.
+    /// Es wird kein HotkeysChanged ausgeloest — die UI zeigt die neue Reihenfolge bereits.
+    /// Die uebergebene Menge muss dieselben Eintraege enthalten wie die aktuelle Liste.
+    /// </summary>
+    public void SetHotkeyOrder(IEnumerable<HotkeyDefinition> ordered)
+    {
+        var list = ordered.ToList();
+
+        if (list.Count != _hotkeys.Count || list.Distinct().Count() != _hotkeys.Count
+            || !list.All(_hotkeys.Contains))
+        {
+            App.Current.LogService.Warning("Neue Hotkey-Reihenfolge passt nicht zur aktuellen Liste — ignoriert.");
+            return;
+        }
+
+        _hotkeys.Clear();
+        _hotkeys.AddRange(list);
+        SaveChanges();
+    }
+
+    /// <summary>
     /// Persistiert den aktuellen Zustand ohne HotkeysChanged auszuloesen.
     /// Fuer In-Place-Aenderungen, die die UI bereits per Binding anzeigt (z.B. IsEnabled-Toggle).
     /// </summary>

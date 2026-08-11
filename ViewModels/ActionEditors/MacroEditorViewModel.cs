@@ -92,6 +92,8 @@ public partial class MacroEditorViewModel : ActionEditorViewModelBase
                     editor.LoadFrom(step);
                     Steps.Add(editor);
                 }
+
+                ExpandIfShort();
             }
             else
             {
@@ -141,11 +143,22 @@ public partial class MacroEditorViewModel : ActionEditorViewModelBase
                 editor.LoadFrom(step);
                 Steps.Add(editor);
             }
+
+            ExpandIfShort();
         }
         finally
         {
             _isSwitchingMode = false;
         }
+    }
+
+    /// <summary>Kurze Makros (unter 3 Bausteinen) komplett aufgeklappt anzeigen.</summary>
+    private void ExpandIfShort()
+    {
+        if (Steps.Count >= 3) return;
+
+        foreach (var step in Steps)
+            step.IsExpanded = true;
     }
 
     /// <summary>
@@ -283,8 +296,11 @@ public partial class MacroEditorViewModel : ActionEditorViewModelBase
         IsSimpleMode = false;
 
         var editor = CreateEditorFor(type);
-        if (editor != null)
-            Steps.Add(editor);
+        if (editor == null) return;
+
+        // Neu hinzugefuegte Bausteine gleich offen zeigen — man will sie ausfuellen
+        editor.IsExpanded = true;
+        Steps.Add(editor);
     }
 
     [RelayCommand]

@@ -279,8 +279,19 @@ public class MidiService : IDisposable
 
             try
             {
+                // Im Umschalt-Modus abwechselnd Value und ValueB senden
+                var value = action.Value;
+                if (action.ToggleValues)
+                {
+                    value = action.LastSentWasB ? action.Value : action.ValueB;
+                    action.LastSentWasB = !action.LastSentWasB;
+
+                    // Zustand merken, damit das Umschalten den Neustart uebersteht
+                    _ = App.Current.ConfigurationService.SaveAsync();
+                }
+
                 var status = (uint)((action.Kind == MidiTriggerKind.NoteOn ? 0x90 : 0xB0) | (action.Channel & 0x0F));
-                var message = status | ((uint)action.Number << 8) | ((uint)action.Value << 16);
+                var message = status | ((uint)action.Number << 8) | ((uint)value << 16);
                 midiOutShortMsg(handle, message);
 
                 // Passendes Note-Off nachschieben, damit die Note nicht haengen bleibt

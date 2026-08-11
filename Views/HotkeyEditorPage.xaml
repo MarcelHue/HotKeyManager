@@ -38,6 +38,13 @@
                              PlaceholderText="z.B. Browser öffnen"
                              MaxLength="100" />
 
+                    <ComboBox Header="Ordner (optional)"
+                              HorizontalAlignment="Stretch"
+                              IsEditable="True"
+                              PlaceholderText="Ohne Ordner"
+                              ItemsSource="{x:Bind ViewModel.KnownGroups}"
+                              Text="{x:Bind ViewModel.Group, Mode=TwoWay}" />
+
                     <StackPanel Spacing="8">
                         <TextBlock Text="Tastenkombination (optional, wenn MIDI gesetzt)" />
                         <Grid ColumnSpacing="8">

@@ -11,6 +11,7 @@ public static class KeyHelper
     // Virtual Key Codes
     public static class VK
     {
+        public const int VK_CANCEL = 0x03; // Ctrl+Pause/Break
         public const int VK_BACK = 0x08;
         public const int VK_TAB = 0x09;
         public const int VK_RETURN = 0x0D;
@@ -111,6 +112,7 @@ public static class KeyHelper
     
     private static readonly Dictionary<int, string> KeyNames = new()
     {
+        { VK.VK_CANCEL, "Break" },
         { VK.VK_BACK, "Backspace" },
         { VK.VK_TAB, "Tab" },
         { VK.VK_RETURN, "Enter" },

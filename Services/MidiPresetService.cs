@@ -69,6 +69,54 @@ public class MidiPresetService
     }
 
     /// <summary>
+    /// Schreibt ein Preset in den Benutzer-Ordner. Mitgelieferte Presets werden dabei
+    /// automatisch zu einer eigenen Kopie — der Programmordner bleibt unangetastet
+    /// (und wird bei Updates ohnehin ueberschrieben).
+    /// </summary>
+    public bool Save(MidiPreset preset)
+    {
+        try
+        {
+            Directory.CreateDirectory(UserFolder);
+
+            var fileName = !string.IsNullOrEmpty(preset.FilePath)
+                ? Path.GetFileName(preset.FilePath)
+                : MakeFileName(preset.Name);
+
+            var target = Path.Combine(UserFolder, fileName);
+
+            var json = JsonSerializer.Serialize(preset, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+
+            File.WriteAllText(target, json);
+            preset.FilePath = target;
+
+            App.Current.LogService.Info($"MIDI-Preset gespeichert: {preset.Name}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error("MIDI-Preset konnte nicht gespeichert werden", ex);
+            return false;
+        }
+    }
+
+    private static string MakeFileName(string presetName)
+    {
+        var safe = new string(presetName
+            .Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-')
+            .ToArray());
+
+        while (safe.Contains("--")) safe = safe.Replace("--", "-");
+        safe = safe.Trim('-');
+
+        return (safe.Length == 0 ? "preset" : safe) + ".json";
+    }
+
+    /// <summary>
     /// Kopiert eine Preset-Datei in den Benutzer-Ordner. Liefert das geladene Preset
     /// oder null, wenn die Datei kein gueltiges Preset ist.
     /// </summary>

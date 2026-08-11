@@ -21,6 +21,12 @@ public class MidiPresetCommand
     /// <summary>Velocity bzw. Controller-Wert (0-127).</summary>
     public int Value { get; set; } = 127;
 
+    /// <summary>Wenn true: abwechselnd Value und ValueB senden (An/Aus-Umschaltung).</summary>
+    public bool Toggle { get; set; }
+
+    /// <summary>Zweiter Wert fuer die Umschaltung.</summary>
+    public int ValueB { get; set; }
+
     /// <summary>Zusatzinfo, z.B. was der Kanal beim Geraet bedeutet.</summary>
     public string? Hint { get; set; }
 
@@ -37,6 +43,15 @@ public class MidiPresetCommand
     /// <summary>Anzeige in der Auswahlliste — ungetestete Befehle sind markiert.</summary>
     [JsonIgnore]
     public string DisplayName => Verified ? Name : $"{Name}  (ungetestet)";
+
+    /// <summary>True, wenn dieser Eintrag denselben Befehl beschreibt (fuer Aktualisieren).</summary>
+    public bool SameCommandAs(MidiPresetCommand other) =>
+        ParsedKind == other.ParsedKind
+        && Channel == other.Channel
+        && Number == other.Number
+        && Value == other.Value
+        && Toggle == other.Toggle
+        && (!Toggle || ValueB == other.ValueB);
 }
 
 /// <summary>

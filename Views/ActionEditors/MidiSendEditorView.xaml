@@ -58,6 +58,25 @@
                            TextWrapping="Wrap"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            Visibility="{x:Bind ViewModel.HasPresetNotes, Mode=OneWay}" />
+
+                <!-- Eigene Werte dauerhaft ins Preset übernehmen -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Click="SaveAsNewCommand_Click"
+                            ToolTipService.ToolTip="Aktuelle Einstellungen als neuen, verifizierten Preset-Eintrag speichern">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE710;" FontSize="12" />
+                            <TextBlock Text="Als Preset-Eintrag speichern" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="UpdateCommand_Click"
+                            IsEnabled="{x:Bind ViewModel.HasSelectedCommand, Mode=OneWay}"
+                            ToolTipService.ToolTip="Gewählten Preset-Eintrag mit diesen Werten überschreiben und als verifiziert markieren">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE73E;" FontSize="12" />
+                            <TextBlock Text="Eintrag aktualisieren" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -78,18 +97,35 @@
                        Header="Kanal (1-16)"
                        Value="{x:Bind ViewModel.Channel, Mode=TwoWay}"
                        Minimum="1" Maximum="16"
-                       SpinButtonPlacementMode="Compact" />
+                       SpinButtonPlacementMode="Inline" />
             <NumberBox Grid.Column="1"
                        Header="Note / CC-Nr."
                        Value="{x:Bind ViewModel.Number, Mode=TwoWay}"
                        Minimum="0" Maximum="127"
-                       SpinButtonPlacementMode="Compact" />
+                       SpinButtonPlacementMode="Inline" />
             <NumberBox Grid.Column="2"
                        Header="Wert"
                        Value="{x:Bind ViewModel.Value, Mode=TwoWay}"
                        Minimum="0" Maximum="127"
-                       SpinButtonPlacementMode="Compact" />
+                       SpinButtonPlacementMode="Inline" />
         </Grid>
+
+        <!-- Umschalt-Modus -->
+        <StackPanel Spacing="8">
+            <CheckBox Content="Bei jedem Auslösen zwischen zwei Werten umschalten"
+                      IsChecked="{x:Bind ViewModel.ToggleValues, Mode=TwoWay}" />
+            <NumberBox Header="Zweiter Wert"
+                       Value="{x:Bind ViewModel.ValueB, Mode=TwoWay}"
+                       Minimum="0" Maximum="127"
+                       SpinButtonPlacementMode="Inline"
+                       HorizontalAlignment="Left"
+                       MinWidth="200"
+                       IsEnabled="{x:Bind ViewModel.ToggleValues, Mode=OneWay}" />
+            <TextBlock Text="Sinnvoll für Geräte mit getrennten An/Aus-Befehlen (z.B. RØDECaster: CC 27 mit Wert 1 = stumm, Wert 0 = laut). Der zuletzt gesendete Wert wird gespeichert, damit ein Tastendruck zuverlässig umschaltet."
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
 
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
@@ -115,7 +151,7 @@
 
         <InfoBar Severity="Informational"
                  Title="Hinweis"
-                 Message="Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Mit „Test senden“ kannst du einen Befehl direkt ausprobieren, ohne das Makro zu speichern."
+                 Message="Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Mit „Test senden“ probierst du einen Befehl direkt aus; funktionierende Werte kannst du oben dauerhaft ins Preset übernehmen."
                  IsOpen="True"
                  IsClosable="False" />
     </StackPanel>

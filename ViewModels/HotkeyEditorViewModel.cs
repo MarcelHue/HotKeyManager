@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HotKeyManager.Helpers;
@@ -37,6 +38,13 @@ public partial class HotkeyEditorViewModel : ObservableObject
 
     [ObservableProperty]
     private string _name = string.Empty;
+
+    /// <summary>Ordner/Gruppe fuer die Listenansicht (leer = ohne Ordner).</summary>
+    [ObservableProperty]
+    private string _group = string.Empty;
+
+    /// <summary>Bereits vorhandene Ordnernamen als Vorschlaege.</summary>
+    public ObservableCollection<string> KnownGroups { get; } = new();
 
     [ObservableProperty]
     private string _hotkeyDisplayText = "Nicht gesetzt";
@@ -113,6 +121,15 @@ public partial class HotkeyEditorViewModel : ObservableObject
             new MacroEditorViewModel()
         };
 
+        foreach (var known in _hotkeyService.Hotkeys
+                     .Select(h => h.Group)
+                     .Where(g => !string.IsNullOrWhiteSpace(g))
+                     .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                     .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase))
+        {
+            KnownGroups.Add(known);
+        }
+
         if (args?.Hotkey is { } hotkey)
         {
             if (args.IsDuplicate)
@@ -146,6 +163,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
     private void LoadHotkey(HotkeyDefinition hotkey)
     {
         Name = hotkey.Name;
+        Group = hotkey.Group;
         _capturedKeyCode = hotkey.VirtualKeyCode;
         _capturedModifiers = hotkey.Modifiers;
         UpdateHotkeyDisplay();
@@ -381,6 +399,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
         {
             Id = _original?.Id ?? Guid.NewGuid(),
             Name = Name.Trim(),
+            Group = Group?.Trim() ?? string.Empty,
             VirtualKeyCode = _capturedKeyCode,
             Modifiers = _capturedModifiers,
             MidiTrigger = _capturedMidi,

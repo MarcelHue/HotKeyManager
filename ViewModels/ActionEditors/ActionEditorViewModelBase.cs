@@ -11,6 +11,13 @@ namespace HotKeyManager.ViewModels.ActionEditors;
 /// </summary>
 public abstract partial class ActionEditorViewModelBase : ObservableObject
 {
+    /// <summary>
+    /// Aufgeklappt-Zustand im Makro-Editor. Kurze Makros werden komplett
+    /// aufgeklappt geladen, damit man alles ohne Klicks sieht.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isExpanded;
+
     /// <summary>Anzeigename im Aktionstyp-Dropdown.</summary>
     public abstract string DisplayName { get; }
 
