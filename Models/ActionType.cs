@@ -8,5 +8,7 @@ public enum ActionType
     BatchCommand,
     SendText,
     Delay,
-    Macro
+    Macro,
+    System,
+    MidiSend
 }

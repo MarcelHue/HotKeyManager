@@ -169,6 +169,13 @@
                                     <Button Background="Transparent"
                                             BorderThickness="0"
                                             Padding="10"
+                                            Click="DuplicateHotkey_Click"
+                                            ToolTipService.ToolTip="Kopieren (alles außer Auslöser übernehmen)">
+                                        <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                    </Button>
+                                    <Button Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="10"
                                             Click="DeleteHotkey_Click"
                                             ToolTipService.ToolTip="Löschen">
                                         <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#EF4444" />

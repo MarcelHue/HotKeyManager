@@ -10,6 +10,8 @@ namespace HotKeyManager.Models;
 [JsonDerivedType(typeof(SendTextAction), "sendtext")]
 [JsonDerivedType(typeof(DelayAction), "delay")]
 [JsonDerivedType(typeof(MacroAction), "macro")]
+[JsonDerivedType(typeof(SystemAction), "system")]
+[JsonDerivedType(typeof(MidiSendAction), "midisend")]
 public abstract class ActionBase
 {
     [JsonIgnore]

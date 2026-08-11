@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HotKeyManager.Views.ActionEditors.SystemEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="8">
+        <ComboBox Header="Aktion"
+                  HorizontalAlignment="Stretch"
+                  SelectedIndex="{x:Bind ViewModel.KindIndex, Mode=TwoWay}">
+            <ComboBoxItem Content="Wiedergabe / Pause" />
+            <ComboBoxItem Content="Nächster Titel" />
+            <ComboBoxItem Content="Vorheriger Titel" />
+            <ComboBoxItem Content="Wiedergabe stoppen" />
+            <ComboBoxItem Content="Lauter" />
+            <ComboBoxItem Content="Leiser" />
+            <ComboBoxItem Content="Ton stumm (an/aus)" />
+            <ComboBoxItem Content="Mikrofon stumm (an/aus)" />
+            <ComboBoxItem Content="Mikrofon stummschalten" />
+            <ComboBoxItem Content="Mikrofon aktivieren" />
+        </ComboBox>
+
+        <TextBlock Text="Medien-Aktionen steuern die App, die gerade Medien wiedergibt. Mikrofon-Aktionen wirken auf das Standard-Aufnahmegerät von Windows."
+                   FontSize="12"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

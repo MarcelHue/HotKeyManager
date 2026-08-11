@@ -17,6 +17,8 @@ public class ActionEditorTemplateSelector : DataTemplateSelector
     public DataTemplate? SendTextTemplate { get; set; }
     public DataTemplate? DelayTemplate { get; set; }
     public DataTemplate? MacroTemplate { get; set; }
+    public DataTemplate? SystemTemplate { get; set; }
+    public DataTemplate? MidiSendTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container)
     {
@@ -29,6 +31,8 @@ public class ActionEditorTemplateSelector : DataTemplateSelector
             SendTextEditorViewModel => SendTextTemplate,
             DelayEditorViewModel => DelayTemplate,
             MacroEditorViewModel => MacroTemplate,
+            SystemEditorViewModel => SystemTemplate,
+            MidiSendEditorViewModel => MidiSendTemplate,
             _ => null
         };
     }

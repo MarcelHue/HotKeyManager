@@ -59,7 +59,8 @@ Windows-native application for managing global hotkeys system-wide. Users define
 | `TrayIconService` | System tray icon & context menu |
 | `ThemeService` | Apply light/dark/system theme + titlebar button colors |
 | `UpdateService` | Velopack update check/download against GitHub Releases (no-op in dev builds) |
-| `MidiService` | Listens on all MIDI-in devices (`Windows.Devices.Midi`, DeviceWatcher hot-plug); NoteOn/CC events trigger hotkeys via optional `HotkeyDefinition.MidiTrigger` — keyboard and MIDI can coexist on one hotkey; editor has MIDI learn |
+| `MidiService` | MIDI in/out via **WinMM** (not WinRT — the MIDI 2.0 stack hides devices from `Windows.Devices.Midi`); 5 s rescan for hot-plug; NoteOn/CC input triggers hotkeys via optional `HotkeyDefinition.MidiTrigger` (keyboard and MIDI can coexist), `SendAsync` drives `MidiSendAction`. Always enumerate before opening a port in the same process, else BADDEVICEID |
+| `AudioService` | Microphone mute (set/toggle) for the default capture device via Core Audio COM |
 
 ### Action Types (Models/ — polymorphic via `$type` in JSON)
 - `WebhookAction` — HTTP request (GET/POST/PUT/DELETE/PATCH)
@@ -68,9 +69,15 @@ Windows-native application for managing global hotkeys system-wide. Users define
 - `ProcessAction` — Launch external process
 - `BatchAction` — Execute CMD.exe batch command
 - `DelayAction` — Wait N ms (mainly as macro step)
+- `SystemAction` — Windows media keys (play/pause, next/prev, volume) + microphone mute via Core Audio (`AudioService`)
+- `MidiSendAction` — Send NoteOn/CC to a MIDI output device (`MidiService.SendAsync`), e.g. back to the Rodecaster
 - `MacroAction` — Composite: ordered `Steps` list of any of the above (no macro nesting), executed top-down with optional global `StepDelayMs` between steps. Editor reuses the per-type editor UserControls as reorderable expander blocks (`MacroEditorView`).
 
 **Since v1.3.0 `MacroAction` is the ONLY top-level action type** — the editor offers no type dropdown anymore; all other types exist solely as macro steps. `LegacyActionMigration.WrapLegacyActions` wraps old single actions into one-step macros on app start and on config import; the editor also wraps transparently when loading an unmigrated hotkey.
+
+**Macro editor has two modes** (`MacroEditorViewModel`): *Einfach* (default) exposes fixed fields — key before / text / key after (`KeyCaptureField` is the reusable capture control); *Erweitert* is the full reorderable block list. `TryLoadSimple` decides the mode when loading: a macro qualifies as simple if it has ≤3 steps, exactly one `SendTextAction`, and the surrounding steps are single-key `KeySequenceAction`s without kernel injection. Switching modes migrates the content both ways.
+
+**Duplicating a hotkey**: list passes `EditorNavArgs { Hotkey = deepCopy, IsDuplicate = true }`; the editor loads everything but clears both triggers and saves as a new hotkey. Deep copies go through `Helpers/ActionCloner` (JSON roundtrip, keeps `$type` polymorphism).
 
 ### Hotkey Targeting
 - `WindowTargetMode`: `None`, `OnlyWhenActive`, `SendToBackground`

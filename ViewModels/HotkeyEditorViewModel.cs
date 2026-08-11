@@ -31,7 +31,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
     /// <summary>Wird ausgeloest, wenn die Seite geschlossen werden soll (Speichern/Abbrechen).</summary>
     public event EventHandler? CloseRequested;
 
-    public string PageTitle => _original == null ? "Neuer Hotkey" : "Hotkey bearbeiten";
+    public string PageTitle { get; private set; } = "Neuer Hotkey";
 
     public IReadOnlyList<ActionEditorViewModelBase> ActionEditors { get; }
 
@@ -115,8 +115,24 @@ public partial class HotkeyEditorViewModel : ObservableObject
 
         if (args?.Hotkey is { } hotkey)
         {
-            _original = hotkey;
-            LoadHotkey(hotkey);
+            if (args.IsDuplicate)
+            {
+                // Kopie: alles uebernehmen ausser dem Ausloeser, als neuer Hotkey speichern
+                LoadHotkey(hotkey);
+                _capturedKeyCode = 0;
+                _capturedModifiers = ModifierKeys.None;
+                _capturedMidi = null;
+                UpdateHotkeyDisplay();
+                UpdateMidiDisplay();
+                Name = $"{hotkey.Name} (Kopie)";
+                PageTitle = "Hotkey kopieren";
+            }
+            else
+            {
+                _original = hotkey;
+                LoadHotkey(hotkey);
+                PageTitle = "Hotkey bearbeiten";
+            }
         }
         else if (args?.PreselectType is { } preselect && preselect != ActionType.Macro)
         {

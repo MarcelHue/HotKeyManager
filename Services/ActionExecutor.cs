@@ -116,6 +116,12 @@ public class ActionExecutor
                 if (delay.DurationMs > 0)
                     await Task.Delay(delay.DurationMs);
                 break;
+            case SystemAction system:
+                ExecuteSystemAction(system);
+                break;
+            case MidiSendAction midiSend:
+                await App.Current.MidiService.SendAsync(midiSend);
+                break;
             case MacroAction macro:
                 await ExecuteMacroAsync(macro, windowMode, targetProcessName, targetWindowTitle);
                 break;
@@ -364,6 +370,41 @@ public class ActionExecutor
             keybd_event(0x11, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
     }
     
+    /// <summary>
+    /// Windows-Systemaktionen: Medientasten ueber virtuelle Tastencodes,
+    /// Mikrofon-Stummschaltung ueber die Core Audio API.
+    /// </summary>
+    private void ExecuteSystemAction(SystemAction action)
+    {
+        const byte VK_VOLUME_MUTE = 0xAD;
+        const byte VK_VOLUME_DOWN = 0xAE;
+        const byte VK_VOLUME_UP = 0xAF;
+        const byte VK_MEDIA_NEXT_TRACK = 0xB0;
+        const byte VK_MEDIA_PREV_TRACK = 0xB1;
+        const byte VK_MEDIA_STOP = 0xB2;
+        const byte VK_MEDIA_PLAY_PAUSE = 0xB3;
+
+        switch (action.Kind)
+        {
+            case SystemActionKind.PlayPause: TapKey(VK_MEDIA_PLAY_PAUSE); break;
+            case SystemActionKind.NextTrack: TapKey(VK_MEDIA_NEXT_TRACK); break;
+            case SystemActionKind.PreviousTrack: TapKey(VK_MEDIA_PREV_TRACK); break;
+            case SystemActionKind.StopMedia: TapKey(VK_MEDIA_STOP); break;
+            case SystemActionKind.VolumeUp: TapKey(VK_VOLUME_UP); break;
+            case SystemActionKind.VolumeDown: TapKey(VK_VOLUME_DOWN); break;
+            case SystemActionKind.ToggleSystemMute: TapKey(VK_VOLUME_MUTE); break;
+            case SystemActionKind.ToggleMicrophoneMute: AudioService.SetMicrophoneMute(null); break;
+            case SystemActionKind.MicrophoneMuteOn: AudioService.SetMicrophoneMute(true); break;
+            case SystemActionKind.MicrophoneMuteOff: AudioService.SetMicrophoneMute(false); break;
+        }
+    }
+
+    private static void TapKey(byte virtualKeyCode)
+    {
+        keybd_event(virtualKeyCode, 0, KEYEVENTF_KEYDOWN, UIntPtr.Zero);
+        keybd_event(virtualKeyCode, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+    }
+
     private void ExecuteProcess(ProcessAction action)
     {
         try

@@ -15,6 +15,10 @@ public sealed partial class MacroEditorView : UserControl
         DataContextChanged += (s, e) => Bindings.Update();
     }
 
+    public string ModeHint(bool isSimpleMode) => isSimpleMode
+        ? "Einfach: Taste davor, Text, Taste danach — für die häufigsten Makros."
+        : "Erweitert: beliebige Bausteine frei kombinierbar.";
+
     private void AddStep_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel == null || sender is not MenuFlyoutItem { Tag: string tag }) return;
@@ -24,6 +28,8 @@ public sealed partial class MacroEditorView : UserControl
             "sendtext" => ActionType.SendText,
             "keysequence" => ActionType.KeySequence,
             "delay" => ActionType.Delay,
+            "system" => ActionType.System,
+            "midisend" => ActionType.MidiSend,
             "webhook" => ActionType.Webhook,
             "process" => ActionType.StartProcess,
             "batch" => ActionType.BatchCommand,

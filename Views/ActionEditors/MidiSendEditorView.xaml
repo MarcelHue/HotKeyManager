@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HotKeyManager.Views.ActionEditors.MidiSendEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="12">
+        <ComboBox Header="Ausgabegerät"
+                  HorizontalAlignment="Stretch"
+                  ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}"
+                  SelectedIndex="{x:Bind ViewModel.DeviceIndex, Mode=TwoWay}" />
+
+        <ComboBox Header="Nachrichtentyp"
+                  HorizontalAlignment="Stretch"
+                  SelectedIndex="{x:Bind ViewModel.KindIndex, Mode=TwoWay}">
+            <ComboBoxItem Content="Note (Note On)" />
+            <ComboBoxItem Content="Control Change (CC)" />
+        </ComboBox>
+
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <NumberBox Grid.Column="0"
+                       Header="Kanal (1-16)"
+                       Value="{x:Bind ViewModel.Channel, Mode=TwoWay}"
+                       Minimum="1" Maximum="16"
+                       SpinButtonPlacementMode="Compact" />
+            <NumberBox Grid.Column="1"
+                       Header="Note / CC-Nr."
+                       Value="{x:Bind ViewModel.Number, Mode=TwoWay}"
+                       Minimum="0" Maximum="127"
+                       SpinButtonPlacementMode="Compact" />
+            <NumberBox Grid.Column="2"
+                       Header="Wert"
+                       Value="{x:Bind ViewModel.Value, Mode=TwoWay}"
+                       Minimum="0" Maximum="127"
+                       SpinButtonPlacementMode="Compact" />
+        </Grid>
+
+        <NumberBox Header="Note-Off nach (ms, 0 = keins)"
+                   Value="{x:Bind ViewModel.NoteOffAfterMs, Mode=TwoWay}"
+                   Minimum="0" Maximum="10000"
+                   SmallChange="10"
+                   SpinButtonPlacementMode="Inline"
+                   HorizontalAlignment="Left"
+                   MinWidth="260" />
+
+        <InfoBar Severity="Informational"
+                 Title="Hinweis"
+                 Message="Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Beim RØDECaster muss MIDI-Steuerung aktiv sein — welche Note/CC welche Funktion auslöst, musst du ggf. ausprobieren."
+                 IsOpen="True"
+                 IsClosable="False" />
+    </StackPanel>
+</UserControl>

@@ -69,6 +69,36 @@ public class MidiService : IDisposable
     [DllImport("winmm.dll")]
     private static extern uint midiInClose(IntPtr hMidiIn);
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MIDIOUTCAPS
+    {
+        public ushort wMid;
+        public ushort wPid;
+        public uint vDriverVersion;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szPname;
+        public ushort wTechnology;
+        public ushort wVoices;
+        public ushort wNotes;
+        public ushort wChannelMask;
+        public uint dwSupport;
+    }
+
+    [DllImport("winmm.dll")]
+    private static extern uint midiOutGetNumDevs();
+
+    [DllImport("winmm.dll", CharSet = CharSet.Unicode, EntryPoint = "midiOutGetDevCapsW")]
+    private static extern uint midiOutGetDevCaps(UIntPtr deviceId, ref MIDIOUTCAPS caps, uint size);
+
+    [DllImport("winmm.dll")]
+    private static extern uint midiOutOpen(out IntPtr hMidiOut, uint deviceId, IntPtr callback, IntPtr instance, uint flags);
+
+    [DllImport("winmm.dll")]
+    private static extern uint midiOutShortMsg(IntPtr hMidiOut, uint message);
+
+    [DllImport("winmm.dll")]
+    private static extern uint midiOutClose(IntPtr hMidiOut);
+
     private readonly object _lock = new();
     private readonly Dictionary<IntPtr, string> _openPorts = new();
     // Delegate als Feld halten, sonst sammelt der GC den nativen Callback ein
@@ -188,6 +218,88 @@ public class MidiService : IDisposable
             catch { }
         }
         _openPorts.Clear();
+    }
+
+    /// <summary>Namen aller MIDI-Ausgabegeraete (fuer die Auswahl im Editor).</summary>
+    public IReadOnlyList<string> GetOutputDeviceNames()
+    {
+        var names = new List<string>();
+        try
+        {
+            var count = midiOutGetNumDevs();
+            for (uint i = 0; i < count; i++)
+            {
+                var caps = new MIDIOUTCAPS();
+                if (midiOutGetDevCaps((UIntPtr)i, ref caps, (uint)Marshal.SizeOf<MIDIOUTCAPS>()) == MMSYSERR_NOERROR)
+                    names.Add(caps.szPname);
+            }
+        }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Warning("MIDI-Ausgabegeräte konnten nicht ermittelt werden", ex);
+        }
+        return names;
+    }
+
+    /// <summary>
+    /// Sendet eine MIDI-Nachricht an das angegebene Ausgabegeraet
+    /// (leerer Name = erstes verfuegbares Geraet).
+    /// </summary>
+    public async Task SendAsync(MidiSendAction action)
+    {
+        try
+        {
+            // Geraeteliste muss im selben Prozess vor dem Oeffnen abgefragt werden
+            var names = GetOutputDeviceNames();
+            if (names.Count == 0)
+            {
+                App.Current.LogService.Warning("MIDI senden: kein Ausgabegerät vorhanden.");
+                return;
+            }
+
+            var index = string.IsNullOrWhiteSpace(action.DeviceName)
+                ? 0
+                : names.Select((n, i) => (n, i))
+                       .Where(x => string.Equals(x.n, action.DeviceName, StringComparison.OrdinalIgnoreCase))
+                       .Select(x => x.i)
+                       .DefaultIfEmpty(-1)
+                       .First();
+
+            if (index < 0)
+            {
+                App.Current.LogService.Warning($"MIDI senden: Gerät '{action.DeviceName}' nicht gefunden.");
+                return;
+            }
+
+            if (midiOutOpen(out var handle, (uint)index, IntPtr.Zero, IntPtr.Zero, 0) != MMSYSERR_NOERROR)
+            {
+                App.Current.LogService.Warning($"MIDI senden: Gerät '{names[index]}' konnte nicht geöffnet werden.");
+                return;
+            }
+
+            try
+            {
+                var status = (uint)((action.Kind == MidiTriggerKind.NoteOn ? 0x90 : 0xB0) | (action.Channel & 0x0F));
+                var message = status | ((uint)action.Number << 8) | ((uint)action.Value << 16);
+                midiOutShortMsg(handle, message);
+
+                // Passendes Note-Off nachschieben, damit die Note nicht haengen bleibt
+                if (action.Kind == MidiTriggerKind.NoteOn && action.NoteOffAfterMs > 0)
+                {
+                    await Task.Delay(action.NoteOffAfterMs);
+                    var noteOff = status | ((uint)action.Number << 8);
+                    midiOutShortMsg(handle, noteOff);
+                }
+            }
+            finally
+            {
+                midiOutClose(handle);
+            }
+        }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error("MIDI senden fehlgeschlagen", ex);
+        }
     }
 
     public void Stop()

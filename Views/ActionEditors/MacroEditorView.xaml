@@ -16,6 +16,12 @@
         <DataTemplate x:Key="StepDelayTemplate">
             <ae:DelayEditorView />
         </DataTemplate>
+        <DataTemplate x:Key="StepSystemTemplate">
+            <ae:SystemEditorView />
+        </DataTemplate>
+        <DataTemplate x:Key="StepMidiSendTemplate">
+            <ae:MidiSendEditorView />
+        </DataTemplate>
         <DataTemplate x:Key="StepWebhookTemplate">
             <ae:WebhookEditorView />
         </DataTemplate>
@@ -30,133 +36,281 @@
                                          SendTextTemplate="{StaticResource StepSendTextTemplate}"
                                          KeySequenceTemplate="{StaticResource StepKeySequenceTemplate}"
                                          DelayTemplate="{StaticResource StepDelayTemplate}"
+                                         SystemTemplate="{StaticResource StepSystemTemplate}"
+                                         MidiSendTemplate="{StaticResource StepMidiSendTemplate}"
                                          WebhookTemplate="{StaticResource StepWebhookTemplate}"
                                          ProcessTemplate="{StaticResource StepProcessTemplate}"
                                          BatchTemplate="{StaticResource StepBatchTemplate}" />
     </UserControl.Resources>
 
     <StackPanel Spacing="12">
-        <Grid ColumnSpacing="8">
+
+        <!-- Modus-Umschalter -->
+        <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
             <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                <TextBlock Text="Bausteine" Style="{ThemeResource BodyStrongTextBlockStyle}" />
-                <TextBlock Text="Werden von oben nach unten ausgeführt — Reihenfolge per Ziehen ändern"
+                <TextBlock Text="Ablauf" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                <TextBlock Text="{x:Bind ModeHint(ViewModel.IsSimpleMode), Mode=OneWay}"
                            FontSize="12"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap" />
             </StackPanel>
-
-            <Button Grid.Column="1" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE710;" FontSize="12" />
-                    <TextBlock Text="Baustein hinzufügen" />
-                </StackPanel>
-                <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedRight">
-                        <MenuFlyoutItem Text="Text eingeben" Tag="sendtext" Click="AddStep_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE8D2;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem Text="Tastendruck / Tastensequenz" Tag="keysequence" Click="AddStep_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE765;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem Text="Verzögerung" Tag="delay" Click="AddStep_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE916;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="Webhook aufrufen" Tag="webhook" Click="AddStep_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE774;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem Text="Programm starten" Tag="process" Click="AddStep_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE756;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem Text="Batch-Befehl ausführen" Tag="batch" Click="AddStep_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE7AC;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                    </MenuFlyout>
-                </Button.Flyout>
-            </Button>
+            <ToggleSwitch Grid.Column="1"
+                          VerticalAlignment="Center"
+                          MinWidth="0"
+                          OnContent="Erweitert"
+                          OffContent="Einfach"
+                          IsOn="{x:Bind ViewModel.IsAdvancedMode, Mode=TwoWay}" />
         </Grid>
 
-        <NumberBox Header="Verzögerung zwischen Bausteinen (ms)"
-                   Value="{x:Bind ViewModel.StepDelayMs, Mode=TwoWay}"
-                   Minimum="0"
-                   Maximum="60000"
-                   SmallChange="50"
-                   SpinButtonPlacementMode="Inline"
-                   HorizontalAlignment="Left"
-                   MinWidth="280" />
+        <!-- ===== Einfach-Modus ===== -->
+        <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.IsSimpleMode, Mode=OneWay}">
 
-        <ListView ItemsSource="{x:Bind ViewModel.Steps, Mode=OneWay}"
-                  SelectionMode="None"
-                  CanReorderItems="True"
-                  AllowDrop="True"
-                  CanDragItems="True">
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Padding" Value="0" />
-                    <Setter Property="Margin" Value="0,0,0,8" />
-                    <Setter Property="Background" Value="Transparent" />
-                </Style>
-            </ListView.ItemContainerStyle>
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Expander HorizontalAlignment="Stretch"
-                              HorizontalContentAlignment="Stretch">
-                        <Expander.Header>
-                            <Grid ColumnSpacing="10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <FontIcon Grid.Column="0"
-                                          Glyph="&#xE700;"
-                                          FontSize="12"
-                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Center"
-                                          ToolTipService.ToolTip="Ziehen zum Umsortieren" />
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding DisplayName}"
-                                           VerticalAlignment="Center" />
-                                <Button Grid.Column="2"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="8"
-                                        VerticalAlignment="Center"
-                                        Click="RemoveStep_Click"
-                                        ToolTipService.ToolTip="Baustein entfernen">
-                                    <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#EF4444" />
-                                </Button>
-                            </Grid>
-                        </Expander.Header>
-                        <ContentControl Content="{Binding}"
-                                        ContentTemplateSelector="{StaticResource StepEditorSelector}"
-                                        HorizontalContentAlignment="Stretch"
-                                        IsTabStop="False" />
-                    </Expander>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            <StackPanel Spacing="6">
+                <TextBlock Text="1. Taste davor (optional)" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Background="{ThemeResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12,10">
+                        <TextBlock Text="{x:Bind ViewModel.PrefixKey.DisplayText, Mode=OneWay}"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <Button Grid.Column="1"
+                            Command="{x:Bind ViewModel.PrefixKey.StartCaptureCommand}"
+                            IsEnabled="{x:Bind ViewModel.PrefixKey.IsButtonEnabled, Mode=OneWay}"
+                            VerticalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE765;" FontSize="12" />
+                            <TextBlock Text="{x:Bind ViewModel.PrefixKey.ButtonText, Mode=OneWay}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Command="{x:Bind ViewModel.PrefixKey.ClearCommand}"
+                            Visibility="{x:Bind ViewModel.PrefixKey.HasKey, Mode=OneWay}"
+                            VerticalAlignment="Stretch"
+                            ToolTipService.ToolTip="Taste entfernen">
+                        <FontIcon Glyph="&#xE711;" FontSize="12" />
+                    </Button>
+                </Grid>
+            </StackPanel>
 
-        <TextBlock Text="Noch keine Bausteine — füge über „Baustein hinzufügen“ den ersten Schritt hinzu."
-                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                   FontStyle="Italic"
-                   Visibility="{x:Bind ViewModel.IsEmptyHintVisible, Mode=OneWay}" />
+            <StackPanel Spacing="6">
+                <TextBlock Text="2. Text" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBox Text="{x:Bind ViewModel.SimpleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Text, der getippt werden soll…"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="120"
+                         MaxHeight="280"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{x:Bind ViewModel.SimpleStatsText, Mode=OneWay}"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <NumberBox Grid.Column="1"
+                               Header="ms/Zeichen"
+                               Value="{x:Bind ViewModel.SimpleCharDelayMs, Mode=TwoWay}"
+                               Minimum="0" Maximum="500"
+                               SmallChange="5"
+                               SpinButtonPlacementMode="Compact"
+                               MinWidth="140" />
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="3. Taste danach (optional, z.B. Enter)" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Background="{ThemeResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12,10">
+                        <TextBlock Text="{x:Bind ViewModel.SuffixKey.DisplayText, Mode=OneWay}"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <Button Grid.Column="1"
+                            Command="{x:Bind ViewModel.SuffixKey.StartCaptureCommand}"
+                            IsEnabled="{x:Bind ViewModel.SuffixKey.IsButtonEnabled, Mode=OneWay}"
+                            VerticalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE765;" FontSize="12" />
+                            <TextBlock Text="{x:Bind ViewModel.SuffixKey.ButtonText, Mode=OneWay}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="2"
+                            Command="{x:Bind ViewModel.SuffixKey.ClearCommand}"
+                            Visibility="{x:Bind ViewModel.SuffixKey.HasKey, Mode=OneWay}"
+                            VerticalAlignment="Stretch"
+                            ToolTipService.ToolTip="Taste entfernen">
+                        <FontIcon Glyph="&#xE711;" FontSize="12" />
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ===== Erweiterter Modus ===== -->
+        <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.IsAdvancedMode, Mode=OneWay}">
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="Bausteine werden von oben nach unten ausgeführt — Reihenfolge per Ziehen ändern"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                <Button Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE710;" FontSize="12" />
+                        <TextBlock Text="Baustein hinzufügen" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Text eingeben" Tag="sendtext" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8D2;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Tastendruck / Tastensequenz" Tag="keysequence" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE765;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Verzögerung" Tag="delay" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE916;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Windows-Aktion (Medien, Mikrofon)" Tag="system" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE767;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="MIDI senden" Tag="midisend" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xEC4F;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Webhook aufrufen" Tag="webhook" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE774;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Programm starten" Tag="process" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE756;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Batch-Befehl ausführen" Tag="batch" Click="AddStep_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE7AC;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+
+            <NumberBox Header="Verzögerung zwischen Bausteinen (ms)"
+                       Value="{x:Bind ViewModel.StepDelayMs, Mode=TwoWay}"
+                       Minimum="0"
+                       Maximum="60000"
+                       SmallChange="50"
+                       SpinButtonPlacementMode="Inline"
+                       HorizontalAlignment="Left"
+                       MinWidth="280" />
+
+            <ListView ItemsSource="{x:Bind ViewModel.Steps, Mode=OneWay}"
+                      SelectionMode="None"
+                      CanReorderItems="True"
+                      AllowDrop="True"
+                      CanDragItems="True">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                        <Setter Property="Background" Value="Transparent" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Expander HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch">
+                            <Expander.Header>
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Grid.Column="0"
+                                              Glyph="&#xE700;"
+                                              FontSize="12"
+                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"
+                                              ToolTipService.ToolTip="Ziehen zum Umsortieren" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding DisplayName}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="2"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="8"
+                                            VerticalAlignment="Center"
+                                            Click="RemoveStep_Click"
+                                            ToolTipService.ToolTip="Baustein entfernen">
+                                        <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#EF4444" />
+                                    </Button>
+                                </Grid>
+                            </Expander.Header>
+                            <ContentControl Content="{Binding}"
+                                            ContentTemplateSelector="{StaticResource StepEditorSelector}"
+                                            HorizontalContentAlignment="Stretch"
+                                            IsTabStop="False" />
+                        </Expander>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <TextBlock Text="Noch keine Bausteine — füge über „Baustein hinzufügen“ den ersten Schritt hinzu."
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       FontStyle="Italic"
+                       Visibility="{x:Bind ViewModel.IsEmptyHintVisible, Mode=OneWay}" />
+        </StackPanel>
     </StackPanel>
 </UserControl>

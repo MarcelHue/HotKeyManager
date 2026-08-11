@@ -1,3 +1,4 @@
+using HotKeyManager.Helpers;
 using HotKeyManager.Models;
 using HotKeyManager.ViewModels;
 using Microsoft.UI.Xaml;
@@ -47,6 +48,24 @@ public sealed partial class HotkeyListPage : Page
     {
         if ((sender as FrameworkElement)?.DataContext is HotkeyDefinition hotkey)
             Frame.Navigate(typeof(HotkeyEditorPage), new EditorNavArgs { Hotkey = hotkey });
+    }
+
+    private void DuplicateHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not HotkeyDefinition hotkey)
+            return;
+
+        // Tiefe Kopie, damit Original und Kopie keine Bausteine teilen
+        var copy = new HotkeyDefinition
+        {
+            Name = hotkey.Name,
+            Action = ActionCloner.Clone(hotkey.Action),
+            WindowMode = hotkey.WindowMode,
+            TargetProcessName = hotkey.TargetProcessName,
+            TargetWindowTitle = hotkey.TargetWindowTitle
+        };
+
+        Frame.Navigate(typeof(HotkeyEditorPage), new EditorNavArgs { Hotkey = copy, IsDuplicate = true });
     }
 
     private async void RunHotkey_Click(object sender, RoutedEventArgs e)
