@@ -114,7 +114,7 @@
                                         CornerRadius="6"
                                         Padding="14,8"
                                         VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind KeyDisplayText}"
+                                    <TextBlock Text="{x:Bind TriggerDisplayText}"
                                                FontFamily="Consolas"
                                                FontWeight="SemiBold"
                                                Foreground="{ThemeResource AccentBrush}" />

@@ -39,6 +39,9 @@ public class HotkeyDefinition : INotifyPropertyChanged
         }
     }
     public ActionBase? Action { get; set; }
+
+    /// <summary>Optionaler MIDI-Ausloeser (z.B. Rodecaster-Pad). Null = nur Tastatur.</summary>
+    public MidiTrigger? MidiTrigger { get; set; }
     
     /// <summary>Fenster-Targeting Modus.</summary>
     public WindowTargetMode WindowMode { get; set; } = WindowTargetMode.None;
@@ -52,8 +55,11 @@ public class HotkeyDefinition : INotifyPropertyChanged
     {
         get
         {
+            if (VirtualKeyCode == 0)
+                return string.Empty;
+
             var parts = new List<string>();
-            
+
             if (Modifiers.HasFlag(ModifierKeys.Control))
                 parts.Add("Ctrl");
             if (Modifiers.HasFlag(ModifierKeys.Alt))
@@ -62,10 +68,25 @@ public class HotkeyDefinition : INotifyPropertyChanged
                 parts.Add("Shift");
             if (Modifiers.HasFlag(ModifierKeys.Windows))
                 parts.Add("Win");
-            
+
             parts.Add(Helpers.KeyHelper.GetKeyName(VirtualKeyCode));
-            
+
             return string.Join(" + ", parts);
+        }
+    }
+
+    /// <summary>Kombinierte Anzeige aller Ausloeser (Taste und/oder MIDI) fuer die Liste.</summary>
+    [JsonIgnore]
+    public string TriggerDisplayText
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (VirtualKeyCode != 0)
+                parts.Add(KeyDisplayText);
+            if (MidiTrigger != null)
+                parts.Add($"MIDI: {MidiTrigger.DisplayText}");
+            return parts.Count > 0 ? string.Join("  ·  ", parts) : "Kein Auslöser";
         }
     }
 }

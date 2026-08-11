@@ -77,7 +77,7 @@ public partial class HotkeyListViewModel : ObservableObject
         {
             filtered = all.Where(h =>
                 h.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-                h.KeyDisplayText.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                h.TriggerDisplayText.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
                 (h.Action?.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (h.Action?.Description.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false));
         }

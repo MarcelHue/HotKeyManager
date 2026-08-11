@@ -16,12 +16,15 @@ public partial class HotkeyEditorViewModel : ObservableObject
 {
     private readonly HotkeyManagerService _hotkeyService;
     private readonly KeyboardHookService _keyboardHook;
+    private readonly MidiService _midiService;
     private readonly DispatcherQueue _dispatcherQueue;
 
     private readonly HotkeyDefinition? _original;
     private int _capturedKeyCode;
     private ModifierKeys _capturedModifiers;
+    private MidiTrigger? _capturedMidi;
     private bool _isCapturingKey;
+    private bool _isLearningMidi;
     private DispatcherQueueTimer? _windowCaptureTimer;
     private int _windowCaptureCountdown;
 
@@ -43,6 +46,21 @@ public partial class HotkeyEditorViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isCaptureKeyEnabled = true;
+
+    [ObservableProperty]
+    private bool _hasKey;
+
+    [ObservableProperty]
+    private string _midiDisplayText = "Nicht gesetzt";
+
+    [ObservableProperty]
+    private string _midiLearnButtonText = "MIDI erfassen";
+
+    [ObservableProperty]
+    private bool _isMidiLearnEnabled = true;
+
+    [ObservableProperty]
+    private bool _hasMidiTrigger;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedActionEditor))]
@@ -85,6 +103,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
     {
         _hotkeyService = hotkeyService ?? App.Current.HotkeyManagerService;
         _keyboardHook = keyboardHook ?? App.Current.KeyboardHookService;
+        _midiService = App.Current.MidiService;
         _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
 
         // Seit v1.3.0 ist das Baustein-Makro der einzige Top-Level-Aktionstyp —
@@ -114,6 +133,9 @@ public partial class HotkeyEditorViewModel : ObservableObject
         _capturedKeyCode = hotkey.VirtualKeyCode;
         _capturedModifiers = hotkey.Modifiers;
         UpdateHotkeyDisplay();
+
+        _capturedMidi = hotkey.MidiTrigger;
+        UpdateMidiDisplay();
 
         WindowModeIndex = (int)hotkey.WindowMode;
         TargetProcessName = hotkey.TargetProcessName ?? string.Empty;
@@ -170,8 +192,19 @@ public partial class HotkeyEditorViewModel : ObservableObject
         });
     }
 
+    [RelayCommand]
+    private void ClearKey()
+    {
+        StopKeyCapture();
+        _capturedKeyCode = 0;
+        _capturedModifiers = ModifierKeys.None;
+        UpdateHotkeyDisplay();
+    }
+
     private void UpdateHotkeyDisplay()
     {
+        HasKey = _capturedKeyCode != 0;
+
         if (_capturedKeyCode == 0)
         {
             HotkeyDisplayText = "Nicht gesetzt";
@@ -186,6 +219,66 @@ public partial class HotkeyEditorViewModel : ObservableObject
         parts.Add(KeyHelper.GetKeyName(_capturedKeyCode));
 
         HotkeyDisplayText = string.Join(" + ", parts);
+    }
+
+    #endregion
+
+    #region MIDI Learn
+
+    [RelayCommand]
+    private void StartMidiLearn()
+    {
+        if (_isLearningMidi) return;
+
+        _isLearningMidi = true;
+        _midiService.IsLearning = true;
+        _midiService.MidiReceived += OnMidiReceivedForLearn;
+
+        MidiDisplayText = "Drücke ein Pad / eine Taste am MIDI-Gerät...";
+        MidiLearnButtonText = "Erfassen...";
+        IsMidiLearnEnabled = false;
+    }
+
+    private void StopMidiLearn()
+    {
+        if (!_isLearningMidi) return;
+
+        _isLearningMidi = false;
+        _midiService.MidiReceived -= OnMidiReceivedForLearn;
+        _midiService.IsLearning = false;
+
+        MidiLearnButtonText = "MIDI erfassen";
+        IsMidiLearnEnabled = true;
+        UpdateMidiDisplay();
+    }
+
+    private void OnMidiReceivedForLearn(object? sender, MidiTriggerEventArgs e)
+    {
+        // Kommt auf einem WinRT-Thread an
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            _capturedMidi = new MidiTrigger
+            {
+                Kind = e.Kind,
+                Channel = e.Channel,
+                Number = e.Number
+            };
+            StopMidiLearn();
+        });
+    }
+
+    [RelayCommand]
+    private void ClearMidi()
+    {
+        StopMidiLearn();
+        _capturedMidi = null;
+        UpdateMidiDisplay();
+    }
+
+    private void UpdateMidiDisplay()
+    {
+        HasMidiTrigger = _capturedMidi != null;
+        MidiDisplayText = _capturedMidi?.DisplayText ?? "Nicht gesetzt";
     }
 
     #endregion
@@ -239,6 +332,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
     public void CancelAllCaptures()
     {
         StopKeyCapture();
+        StopMidiLearn();
         StopWindowCapture();
         foreach (var editor in ActionEditors)
             editor.CancelCapture();
@@ -253,9 +347,9 @@ public partial class HotkeyEditorViewModel : ObservableObject
             return;
         }
 
-        if (_capturedKeyCode == 0)
+        if (_capturedKeyCode == 0 && _capturedMidi == null)
         {
-            ShowError("Bitte erfasse eine Tastenkombination.");
+            ShowError("Bitte erfasse eine Tastenkombination oder einen MIDI-Trigger.");
             return;
         }
 
@@ -273,6 +367,7 @@ public partial class HotkeyEditorViewModel : ObservableObject
             Name = Name.Trim(),
             VirtualKeyCode = _capturedKeyCode,
             Modifiers = _capturedModifiers,
+            MidiTrigger = _capturedMidi,
             IsEnabled = _original?.IsEnabled ?? true,
             WindowMode = (WindowTargetMode)WindowModeIndex,
             TargetProcessName = string.IsNullOrWhiteSpace(TargetProcessName) ? null : TargetProcessName.Trim(),

@@ -59,6 +59,7 @@ Windows-native application for managing global hotkeys system-wide. Users define
 | `TrayIconService` | System tray icon & context menu |
 | `ThemeService` | Apply light/dark/system theme + titlebar button colors |
 | `UpdateService` | Velopack update check/download against GitHub Releases (no-op in dev builds) |
+| `MidiService` | Listens on all MIDI-in devices (`Windows.Devices.Midi`, DeviceWatcher hot-plug); NoteOn/CC events trigger hotkeys via optional `HotkeyDefinition.MidiTrigger` — keyboard and MIDI can coexist on one hotkey; editor has MIDI learn |
 
 ### Action Types (Models/ — polymorphic via `$type` in JSON)
 - `WebhookAction` — HTTP request (GET/POST/PUT/DELETE/PATCH)

@@ -23,6 +23,7 @@ public partial class App : Application
     public ActionExecutor ActionExecutor { get; private set; } = null!;
     public AutoStartService AutoStartService { get; } = new();
     public UpdateService UpdateService { get; } = new();
+    public MidiService MidiService { get; } = new();
 
     public App()
     {
@@ -83,7 +84,7 @@ public partial class App : Application
 
         // Initialize services
         ActionExecutor = new ActionExecutor(InterceptionService);
-        HotkeyManagerService = new HotkeyManagerService(KeyboardHookService, ActionExecutor, ConfigurationService);
+        HotkeyManagerService = new HotkeyManagerService(KeyboardHookService, ActionExecutor, ConfigurationService, MidiService);
 
         _mainWindow = new MainWindow();
         _mainWindow.Activate();
@@ -126,6 +127,9 @@ public partial class App : Application
             {
                 InterceptionService.Start();
             }
+
+            // MIDI-Eingaenge oeffnen (z.B. Rodecaster Pro II)
+            MidiService.Start();
 
             HotkeyManagerService.LoadHotkeys(ConfigurationService.Configuration.Hotkeys);
 
@@ -210,6 +214,7 @@ public partial class App : Application
         KeyboardHookService.Stop();
         InterceptionService.Stop();
         InterceptionService.Dispose();
+        MidiService.Dispose();
         LogService.Dispose();
         _trayIconService?.Dispose();
         _mainWindow?.Close();

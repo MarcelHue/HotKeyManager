@@ -39,10 +39,11 @@
                              MaxLength="100" />
 
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Tastenkombination" />
+                        <TextBlock Text="Tastenkombination (optional, wenn MIDI gesetzt)" />
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0"
@@ -63,6 +64,50 @@
                                     <FontIcon Glyph="&#xE765;" FontSize="14" />
                                     <TextBlock Text="{x:Bind ViewModel.CaptureKeyButtonText, Mode=OneWay}" />
                                 </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    Command="{x:Bind ViewModel.ClearKeyCommand}"
+                                    Visibility="{x:Bind ViewModel.HasKey, Mode=OneWay}"
+                                    VerticalAlignment="Stretch"
+                                    ToolTipService.ToolTip="Tastenkombination entfernen">
+                                <FontIcon Glyph="&#xE711;" FontSize="12" />
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="MIDI-Trigger (optional, z.B. Rodecaster-Pad)" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="12,10">
+                                <TextBlock Text="{x:Bind ViewModel.MidiDisplayText, Mode=OneWay}"
+                                           FontFamily="Consolas"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Command="{x:Bind ViewModel.StartMidiLearnCommand}"
+                                    IsEnabled="{x:Bind ViewModel.IsMidiLearnEnabled, Mode=OneWay}"
+                                    VerticalAlignment="Stretch">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xEC4F;" FontSize="14" />
+                                    <TextBlock Text="{x:Bind ViewModel.MidiLearnButtonText, Mode=OneWay}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    Command="{x:Bind ViewModel.ClearMidiCommand}"
+                                    Visibility="{x:Bind ViewModel.HasMidiTrigger, Mode=OneWay}"
+                                    VerticalAlignment="Stretch"
+                                    ToolTipService.ToolTip="MIDI-Trigger entfernen">
+                                <FontIcon Glyph="&#xE711;" FontSize="12" />
                             </Button>
                         </Grid>
                     </StackPanel>

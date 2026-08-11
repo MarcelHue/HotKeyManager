@@ -8,6 +8,7 @@ public class HotkeyManagerService
     private readonly KeyboardHookService _keyboardHook;
     private readonly ActionExecutor _actionExecutor;
     private readonly ConfigurationService _configService;
+    private readonly MidiService? _midiService;
     private readonly List<HotkeyDefinition> _hotkeys = new();
 
     public IReadOnlyList<HotkeyDefinition> Hotkeys => _hotkeys.AsReadOnly();
@@ -17,13 +18,38 @@ public class HotkeyManagerService
     public HotkeyManagerService(
         KeyboardHookService keyboardHook,
         ActionExecutor actionExecutor,
-        ConfigurationService configService)
+        ConfigurationService configService,
+        MidiService? midiService = null)
     {
         _keyboardHook = keyboardHook;
         _actionExecutor = actionExecutor;
         _configService = configService;
+        _midiService = midiService;
 
         _keyboardHook.KeyPressed += OnKeyPressed;
+
+        if (_midiService != null)
+            _midiService.MidiReceived += OnMidiReceived;
+    }
+
+    private void OnMidiReceived(object? sender, MidiTriggerEventArgs e)
+    {
+        // Waehrend des Einlernens im Editor keine Hotkeys ausloesen
+        if (_midiService!.IsLearning) return;
+
+        var matchingHotkey = _hotkeys.FirstOrDefault(h =>
+            h.IsEnabled &&
+            h.MidiTrigger != null &&
+            h.MidiTrigger.Matches(e.Kind, e.Channel, e.Number));
+
+        if (matchingHotkey?.Action != null)
+        {
+            if (!ShouldExecuteHotkey(matchingHotkey))
+                return;
+
+            App.Current.LogService.Debug($"MIDI-Trigger matched: {matchingHotkey.Name} ({e.Kind} {e.Number}, Kanal {e.Channel + 1}, Gerät: {e.DeviceName})");
+            _ = ExecuteHotkeyAsync(matchingHotkey);
+        }
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
