@@ -1,0 +1,87 @@
+{
+  "name": "RØDECaster Pro II / Duo",
+  "description": "MIDI-Befehle zum Steuern des RØDECaster vom PC aus (eingehende MIDI-Befehle am Gerät).",
+  "notes": "Voraussetzung: MIDI-Steuerung am Gerät bzw. in RØDE Central unter System > MIDI aktivieren und als Ausgabegerät 'MIDI function' wählen. RØDE veröffentlicht keine vollständige Befehlstabelle — die folgenden Einträge stammen aus Anleitungen zur Stream-Deck-Steuerung und sind auf deinem Gerät noch nicht bestätigt. Wenn ein Befehl wirkt, kannst du ihn in der JSON-Datei auf \"verified\": true setzen.",
+  "commands": [
+    {
+      "name": "Kanal 1 stumm (umschalten)",
+      "kind": "ControlChange",
+      "channel": 1,
+      "number": 27,
+      "value": 1,
+      "hint": "CC 27 schaltet die Stummschaltung des Kanals um; der MIDI-Kanal bestimmt den Rodecaster-Kanal (1 = erstes Mikrofon). Falls nichts passiert, Wert 127 statt 1 probieren.",
+      "source": "RØDE Stream-Deck-Anleitung / wiki.beard.fm",
+      "verified": false
+    },
+    {
+      "name": "Kanal 2 stumm (umschalten)",
+      "kind": "ControlChange",
+      "channel": 2,
+      "number": 27,
+      "value": 1,
+      "hint": "Wie Kanal 1, aber MIDI-Kanal 2 = Rodecaster-Kanal 2.",
+      "source": "RØDE Stream-Deck-Anleitung / wiki.beard.fm",
+      "verified": false
+    },
+    {
+      "name": "Kanal 3 stumm (umschalten)",
+      "kind": "ControlChange",
+      "channel": 3,
+      "number": 27,
+      "value": 1,
+      "hint": "Wie Kanal 1, aber MIDI-Kanal 3 = Rodecaster-Kanal 3.",
+      "source": "RØDE Stream-Deck-Anleitung / wiki.beard.fm",
+      "verified": false
+    },
+    {
+      "name": "Kanal 4 stumm (umschalten)",
+      "kind": "ControlChange",
+      "channel": 4,
+      "number": 27,
+      "value": 1,
+      "hint": "Wie Kanal 1, aber MIDI-Kanal 4 = Rodecaster-Kanal 4.",
+      "source": "RØDE Stream-Deck-Anleitung / wiki.beard.fm",
+      "verified": false
+    },
+    {
+      "name": "Kanal 5 stumm (umschalten)",
+      "kind": "ControlChange",
+      "channel": 5,
+      "number": 27,
+      "value": 1,
+      "hint": "Wie Kanal 1, aber MIDI-Kanal 5 = Rodecaster-Kanal 5.",
+      "source": "RØDE Stream-Deck-Anleitung / wiki.beard.fm",
+      "verified": false
+    },
+    {
+      "name": "Kanal 6 stumm (umschalten)",
+      "kind": "ControlChange",
+      "channel": 6,
+      "number": 27,
+      "value": 1,
+      "hint": "Wie Kanal 1, aber MIDI-Kanal 6 = Rodecaster-Kanal 6.",
+      "source": "RØDE Stream-Deck-Anleitung / wiki.beard.fm",
+      "verified": false
+    },
+    {
+      "name": "Aufnahme starten (REC an)",
+      "kind": "ControlChange",
+      "channel": 1,
+      "number": 17,
+      "value": 1,
+      "hint": "Der REC-Button nutzt CC 17 auf MIDI-Kanal 1; Wert 1 = an, 0 = aus.",
+      "source": "RØDE Stream-Deck-Anleitung",
+      "verified": false
+    },
+    {
+      "name": "Aufnahme stoppen (REC aus)",
+      "kind": "ControlChange",
+      "channel": 1,
+      "number": 17,
+      "value": 0,
+      "hint": "Gegenstück zu 'Aufnahme starten'.",
+      "source": "RØDE Stream-Deck-Anleitung",
+      "verified": false
+    }
+  ]
+}

@@ -10,6 +10,57 @@
                   ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}"
                   SelectedIndex="{x:Bind ViewModel.DeviceIndex, Mode=TwoWay}" />
 
+        <!-- Preset-Auswahl -->
+        <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="12">
+            <StackPanel Spacing="8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Grid.Column="0"
+                              Header="Preset (dokumentierte Befehle)"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="Kein Preset"
+                              ItemsSource="{x:Bind ViewModel.Presets, Mode=OneWay}"
+                              DisplayMemberPath="Name"
+                              SelectedIndex="{x:Bind ViewModel.PresetIndex, Mode=TwoWay}" />
+                    <Button Grid.Column="1"
+                            VerticalAlignment="Bottom"
+                            Click="ImportPreset_Click"
+                            ToolTipService.ToolTip="Preset-Datei (JSON) importieren">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8B5;" FontSize="12" />
+                            <TextBlock Text="Importieren" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ComboBox Header="Befehl"
+                          HorizontalAlignment="Stretch"
+                          PlaceholderText="Befehl wählen…"
+                          ItemsSource="{x:Bind ViewModel.PresetCommands, Mode=OneWay}"
+                          DisplayMemberPath="DisplayName"
+                          SelectedIndex="{x:Bind ViewModel.CommandIndex, Mode=TwoWay}" />
+
+                <TextBlock Text="{x:Bind ViewModel.CommandHint, Mode=OneWay}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Visibility="{x:Bind ViewModel.HasCommandHint, Mode=OneWay}" />
+
+                <TextBlock Text="{x:Bind ViewModel.PresetNotes, Mode=OneWay}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Visibility="{x:Bind ViewModel.HasPresetNotes, Mode=OneWay}" />
+            </StackPanel>
+        </Border>
+
         <ComboBox Header="Nachrichtentyp"
                   HorizontalAlignment="Stretch"
                   SelectedIndex="{x:Bind ViewModel.KindIndex, Mode=TwoWay}">
@@ -40,17 +91,31 @@
                        SpinButtonPlacementMode="Compact" />
         </Grid>
 
-        <NumberBox Header="Note-Off nach (ms, 0 = keins)"
-                   Value="{x:Bind ViewModel.NoteOffAfterMs, Mode=TwoWay}"
-                   Minimum="0" Maximum="10000"
-                   SmallChange="10"
-                   SpinButtonPlacementMode="Inline"
-                   HorizontalAlignment="Left"
-                   MinWidth="260" />
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <NumberBox Grid.Column="0"
+                       Header="Note-Off nach (ms, 0 = keins)"
+                       Value="{x:Bind ViewModel.NoteOffAfterMs, Mode=TwoWay}"
+                       Minimum="0" Maximum="10000"
+                       SmallChange="10"
+                       SpinButtonPlacementMode="Inline" />
+            <Button Grid.Column="1"
+                    VerticalAlignment="Bottom"
+                    Command="{x:Bind ViewModel.TestSendCommand}"
+                    ToolTipService.ToolTip="Nachricht jetzt einmal senden">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE768;" FontSize="12" />
+                    <TextBlock Text="Test senden" />
+                </StackPanel>
+            </Button>
+        </Grid>
 
         <InfoBar Severity="Informational"
                  Title="Hinweis"
-                 Message="Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Beim RØDECaster muss MIDI-Steuerung aktiv sein — welche Note/CC welche Funktion auslöst, musst du ggf. ausprobieren."
+                 Message="Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Mit „Test senden“ kannst du einen Befehl direkt ausprobieren, ohne das Makro zu speichern."
                  IsOpen="True"
                  IsClosable="False" />
     </StackPanel>

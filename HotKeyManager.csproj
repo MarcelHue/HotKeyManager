@@ -18,7 +18,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- Version wird im Release-Workflow aus dem Git-Tag ueberschrieben (-p:Version=x.y.z) -->
-    <Version>1.5.0</Version>
+    <Version>1.6.0</Version>
 
     <!-- Eigener Main-Einstiegspunkt in Program.cs (Velopack muss vor dem XAML-Start laufen) -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
@@ -40,6 +40,10 @@
 
   <ItemGroup>
     <Content Include="icon-512.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- Mitgelieferte MIDI-Befehls-Presets -->
+    <Content Include="Presets\midi\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

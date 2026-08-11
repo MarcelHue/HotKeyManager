@@ -61,6 +61,7 @@ Windows-native application for managing global hotkeys system-wide. Users define
 | `UpdateService` | Velopack update check/download against GitHub Releases (no-op in dev builds) |
 | `MidiService` | MIDI in/out via **WinMM** (not WinRT — the MIDI 2.0 stack hides devices from `Windows.Devices.Midi`); 5 s rescan for hot-plug; NoteOn/CC input triggers hotkeys via optional `HotkeyDefinition.MidiTrigger` (keyboard and MIDI can coexist), `SendAsync` drives `MidiSendAction`. Always enumerate before opening a port in the same process, else BADDEVICEID |
 | `AudioService` | Microphone mute (set/toggle) for the default capture device via Core Audio COM |
+| `MidiPresetService` | Loads documented MIDI command presets (JSON) from `Presets\midi` next to the exe and from `%APPDATA%\HotKeyManager\Presets\midi`; user presets override built-ins by name. Import copies a file into the user folder after validating it |
 
 ### Action Types (Models/ — polymorphic via `$type` in JSON)
 - `WebhookAction` — HTTP request (GET/POST/PUT/DELETE/PATCH)
