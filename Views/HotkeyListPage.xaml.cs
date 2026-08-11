@@ -277,6 +277,99 @@ public sealed partial class HotkeyListPage : Page
 
     #endregion
 
+    #region Ordner verwalten
+
+    private static HotkeyGroup? GroupOf(object sender) =>
+        (sender as FrameworkElement)?.DataContext as HotkeyGroup;
+
+    private async void GroupName_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        if (GroupOf(sender) is { } group && !string.IsNullOrEmpty(group.Key))
+        {
+            e.Handled = true;
+            await RenameGroupAsync(group);
+        }
+    }
+
+    private void GroupMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || GroupOf(sender) is not { } group) return;
+
+        var flyout = new MenuFlyout { Placement = FlyoutPlacementMode.Bottom };
+
+        // "Ohne Ordner" ist kein echter Ordner — nur zuweisen, nicht umbenennen
+        var isRealFolder = !string.IsNullOrEmpty(group.Key);
+
+        var rename = new MenuFlyoutItem
+        {
+            Text = "Ordner umbenennen…",
+            Icon = new FontIcon { Glyph = "" },
+            IsEnabled = isRealFolder
+        };
+        rename.Click += async (_, _) => await RenameGroupAsync(group);
+        flyout.Items.Add(rename);
+
+        var dissolve = new MenuFlyoutItem
+        {
+            Text = "Ordner auflösen",
+            Icon = new FontIcon { Glyph = "" },
+            IsEnabled = isRealFolder
+        };
+        dissolve.Click += async (_, _) => await DissolveGroupAsync(group);
+        flyout.Items.Add(dissolve);
+
+        flyout.ShowAt(button);
+    }
+
+    private async Task RenameGroupAsync(HotkeyGroup group)
+    {
+        var input = new TextBox { Text = group.Key, SelectionStart = group.Key.Length };
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = "Ordner umbenennen",
+            Content = new StackPanel
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "Der neue Name gilt für alle Hotkeys in diesem Ordner. "
+                             + "Ein bereits vorhandener Name legt beide Ordner zusammen.",
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    input
+                }
+            },
+            PrimaryButtonText = "Umbenennen",
+            CloseButtonText = "Abbrechen",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            ViewModel.RenameGroup(group, input.Text);
+    }
+
+    private async Task DissolveGroupAsync(HotkeyGroup group)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = "Ordner auflösen?",
+            Content = $"Die {group.CountText} aus \"{group.Name}\" bleiben erhalten und stehen danach unter \"{HotkeyGroup.NoGroupLabel}\".",
+            PrimaryButtonText = "Auflösen",
+            CloseButtonText = "Abbrechen",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            ViewModel.DissolveGroup(group);
+    }
+
+    #endregion
+
     #region Verschieben ohne Ziehen
 
     private void MoveMenu_Click(object sender, RoutedEventArgs e)

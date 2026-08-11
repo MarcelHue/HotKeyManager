@@ -143,7 +143,7 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 
 | View | Purpose |
 |---|---|
-| `HotkeyListPage` | Hotkeys grouped into collapsible folders (`HotkeyDefinition.Group`, one level). Per row: drag handle (drag to reorder / drop onto another folder, **click** for a move menu), trigger badge with a flyout to (re)capture key/MIDI inline, inline rename (double-tap or pencil), toggle, run, folder assign, edit, duplicate, delete. Search disables reordering. `DragItemsStarting` clears the auto-generated text in the data package and sets an app-private format — otherwise dropping outside the window pastes/searches that text in other apps (e.g. Firefox) |
+| `HotkeyListPage` | Hotkeys grouped into collapsible folders (`HotkeyDefinition.Group`, one level). Per row: drag handle (drag to reorder / drop onto another folder, **click** for a move menu), trigger badge with a flyout to (re)capture key/MIDI inline, inline rename (double-tap or pencil), toggle, run, folder assign, edit, duplicate, delete. Search disables reordering. Folder header has a menu to rename (also via double-tap on the name) or dissolve the folder. `DragItemsStarting` clears the auto-generated text in the data package and sets an app-private format — otherwise dropping outside the window pastes/searches that text in other apps (e.g. Firefox) |
 | `HotkeyEditorPage` | Create / edit a hotkey (full page, scrolls; key capture + window capture) |
 | `Views/ActionEditors/*` | One UserControl per action type, selected via `ActionEditorTemplateSelector` |
 | `SettingsPage` | Theme, startup/tray, kernel driver, import/export, update check |

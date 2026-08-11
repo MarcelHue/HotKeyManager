@@ -193,6 +193,40 @@ public partial class HotkeyListViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Benennt einen Ordner um — betrifft alle Hotkeys darin.
+    /// Ein bereits existierender Zielname fuehrt zum Zusammenlegen beider Ordner.
+    /// </summary>
+    public void RenameGroup(HotkeyGroup group, string? newName)
+    {
+        var name = newName?.Trim() ?? string.Empty;
+        if (name.Length == 0 || name == group.Key) return;
+
+        foreach (var hotkey in _hotkeyService.Hotkeys.Where(h => h.Group == group.Key).ToList())
+            hotkey.Group = name;
+
+        // Aufklapp-Zustand auf den neuen Namen uebertragen
+        _groupExpanded[name] = group.IsExpanded;
+        _groupExpanded.Remove(group.Key);
+
+        _hotkeyService.SaveChanges();
+        Refresh();
+    }
+
+    /// <summary>Loest einen Ordner auf — die Hotkeys bleiben, landen aber unter "Ohne Ordner".</summary>
+    public void DissolveGroup(HotkeyGroup group)
+    {
+        if (string.IsNullOrEmpty(group.Key)) return;
+
+        foreach (var hotkey in _hotkeyService.Hotkeys.Where(h => h.Group == group.Key).ToList())
+            hotkey.Group = string.Empty;
+
+        _groupExpanded.Remove(group.Key);
+
+        _hotkeyService.SaveChanges();
+        Refresh();
+    }
+
+    /// <summary>
     /// Verschiebt einen Hotkey innerhalb seines Ordners um eine Position
     /// (Alternative zum Ziehen). Liefert false, wenn er schon am Rand steht.
     /// </summary>
