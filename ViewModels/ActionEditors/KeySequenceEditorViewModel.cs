@@ -23,7 +23,6 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
 
     public override string DisplayName => "Tastensequenz senden";
     public override ActionType Type => ActionType.KeySequence;
-    public override string ValidationMessage => "Bitte füge mindestens eine Taste zur Sequenz hinzu.";
 
     public ObservableCollection<KeyStroke> KeyStrokes { get; } = new();
 
@@ -87,11 +86,8 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
         UseKernelInjection = keySequence.UseKernelInjection;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
-        if (KeyStrokes.Count == 0)
-            return null;
-
         return new KeySequenceAction
         {
             Keys = KeyStrokes.ToList(),

@@ -193,6 +193,26 @@ public partial class HotkeyListViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Verschiebt einen Hotkey innerhalb seines Ordners um eine Position
+    /// (Alternative zum Ziehen). Liefert false, wenn er schon am Rand steht.
+    /// </summary>
+    public bool MoveBy(HotkeyDefinition hotkey, int offset)
+    {
+        if (!IsReorderEnabled) return false;
+
+        var group = Groups.FirstOrDefault(g => g.Items.Contains(hotkey));
+        if (group == null) return false;
+
+        var index = group.Items.IndexOf(hotkey);
+        var target = index + offset;
+        if (target < 0 || target >= group.Items.Count) return false;
+
+        group.Items.Move(index, target);
+        ApplyOrderFromGroups();
+        return true;
+    }
+
+    /// <summary>
     /// Verschiebt einen Hotkey per Drag &amp; Drop in einen anderen Ordner
     /// (ans Ende der Zielgruppe) und persistiert Zuordnung und Reihenfolge.
     /// </summary>

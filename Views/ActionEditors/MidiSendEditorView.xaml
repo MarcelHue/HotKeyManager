@@ -76,6 +76,14 @@
                             <TextBlock Text="Eintrag aktualisieren" />
                         </StackPanel>
                     </Button>
+                    <Button Click="OpenPresetFile_Click"
+                            IsEnabled="{x:Bind ViewModel.HasSelectedPreset, Mode=OneWay}"
+                            ToolTipService.ToolTip="Preset-JSON im Standardprogramm öffnen und von Hand bearbeiten">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8E5;" FontSize="12" />
+                            <TextBlock Text="JSON öffnen" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </StackPanel>
         </Border>

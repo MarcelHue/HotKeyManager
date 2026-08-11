@@ -7,7 +7,6 @@ public partial class ProcessEditorViewModel : ActionEditorViewModelBase
 {
     public override string DisplayName => "Programm starten";
     public override ActionType Type => ActionType.StartProcess;
-    public override string ValidationMessage => "Bitte gib einen Programmpfad ein.";
 
     [ObservableProperty]
     private string _filePath = string.Empty;
@@ -35,14 +34,11 @@ public partial class ProcessEditorViewModel : ActionEditorViewModelBase
         Hidden = process.Hidden;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
-        if (string.IsNullOrWhiteSpace(FilePath))
-            return null;
-
         return new ProcessAction
         {
-            FilePath = FilePath.Trim(),
+            FilePath = FilePath?.Trim() ?? string.Empty,
             Arguments = Arguments,
             WorkingDirectory = WorkingDirectory,
             RunAsAdmin = RunAsAdmin,

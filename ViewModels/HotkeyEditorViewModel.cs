@@ -387,13 +387,8 @@ public partial class HotkeyEditorViewModel : ObservableObject
             return;
         }
 
-        var editor = SelectedActionEditor;
-        var action = editor?.BuildAction();
-        if (action == null)
-        {
-            ShowError(editor?.ValidationMessage ?? "Bitte konfiguriere die Aktion.");
-            return;
-        }
+        // Unvollstaendige Bausteine sind erlaubt — Makros duerfen als Entwurf gespeichert werden
+        var action = SelectedActionEditor?.BuildAction();
 
         var hotkey = new HotkeyDefinition
         {

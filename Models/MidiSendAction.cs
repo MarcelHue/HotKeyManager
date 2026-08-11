@@ -8,10 +8,31 @@ public class MidiSendAction : ActionBase
 {
     public override ActionType Type => ActionType.MidiSend;
     public override string DisplayName => "MIDI senden";
-    public override string Description =>
-        ToggleValues
-            ? $"{(Kind == MidiTriggerKind.NoteOn ? "Note" : "CC")} {Number} · Wert {Value} ↔ {ValueB} · Kanal {Channel + 1}"
-            : $"{(Kind == MidiTriggerKind.NoteOn ? "Note" : "CC")} {Number} · Wert {Value} · Kanal {Channel + 1}";
+    public override string Description
+    {
+        get
+        {
+            // Stammt der Befehl aus einem Preset, ist dessen Name aussagekraeftiger
+            // als die rohen MIDI-Werte
+            if (!string.IsNullOrEmpty(PresetCommandName))
+            {
+                return string.IsNullOrEmpty(PresetName)
+                    ? PresetCommandName!
+                    : $"{PresetName}: {PresetCommandName}";
+            }
+
+            var type = Kind == MidiTriggerKind.NoteOn ? "Note" : "CC";
+            return ToggleValues
+                ? $"{type} {Number} · Wert {Value} ↔ {ValueB} · Kanal {Channel + 1}"
+                : $"{type} {Number} · Wert {Value} · Kanal {Channel + 1}";
+        }
+    }
+
+    /// <summary>Name des Presets, aus dem der Befehl stammt (nur fuer die Anzeige).</summary>
+    public string? PresetName { get; set; }
+
+    /// <summary>Name des Preset-Befehls (nur fuer die Anzeige).</summary>
+    public string? PresetCommandName { get; set; }
 
     /// <summary>Name des MIDI-Ausgabegeraets. Leer = erstes verfuegbares Geraet.</summary>
     public string DeviceName { get; set; } = string.Empty;

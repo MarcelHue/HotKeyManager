@@ -15,6 +15,10 @@ public sealed partial class HotkeyListPage : Page
 {
     public HotkeyListViewModel ViewModel { get; } = new();
 
+    /// <summary>Eigenes Zwischenablage-Format — nur diese App kann damit etwas anfangen.</summary>
+    private const string InternalDragFormat = "HotKeyManager/HotkeyRow";
+    private const string hotkeyDragToken = "1";
+
     private HotkeyDefinition? _draggedHotkey;
     private HotkeyGroup? _dragSourceGroup;
     private bool _crossGroupDropHandled;
@@ -273,6 +277,74 @@ public sealed partial class HotkeyListPage : Page
 
     #endregion
 
+    #region Verschieben ohne Ziehen
+
+    private void MoveMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || HotkeyOf(sender) is not { } hotkey) return;
+
+        var flyout = new MenuFlyout { Placement = FlyoutPlacementMode.Bottom };
+
+        var up = new MenuFlyoutItem
+        {
+            Text = "Nach oben",
+            Icon = new FontIcon { Glyph = "" },
+            IsEnabled = ViewModel.IsReorderEnabled
+        };
+        up.Click += (_, _) => ViewModel.MoveBy(hotkey, -1);
+        flyout.Items.Add(up);
+
+        var down = new MenuFlyoutItem
+        {
+            Text = "Nach unten",
+            Icon = new FontIcon { Glyph = "" },
+            IsEnabled = ViewModel.IsReorderEnabled
+        };
+        down.Click += (_, _) => ViewModel.MoveBy(hotkey, 1);
+        flyout.Items.Add(down);
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var toFolder = new MenuFlyoutSubItem
+        {
+            Text = "In Ordner verschieben",
+            Icon = new FontIcon { Glyph = "" }
+        };
+
+        var noGroup = new MenuFlyoutItem { Text = HotkeyGroup.NoGroupLabel };
+        noGroup.Click += (_, _) => ViewModel.SetGroup(hotkey, string.Empty);
+        toFolder.Items.Add(noGroup);
+
+        foreach (var group in ViewModel.KnownGroups)
+        {
+            var item = new MenuFlyoutItem { Text = group };
+            var target = group;
+            item.Click += (_, _) => ViewModel.SetGroup(hotkey, target);
+            toFolder.Items.Add(item);
+        }
+
+        toFolder.Items.Add(new MenuFlyoutSeparator());
+        var newGroup = new MenuFlyoutItem { Text = "Neuer Ordner…" };
+        newGroup.Click += async (_, _) => await CreateGroupAsync(hotkey);
+        toFolder.Items.Add(newGroup);
+
+        flyout.Items.Add(toFolder);
+
+        if (!ViewModel.IsReorderEnabled)
+        {
+            flyout.Items.Add(new MenuFlyoutSeparator());
+            flyout.Items.Add(new MenuFlyoutItem
+            {
+                Text = "Sortieren erst ohne aktive Suche möglich",
+                IsEnabled = false
+            });
+        }
+
+        flyout.ShowAt(button);
+    }
+
+    #endregion
+
     #region Drag & Drop
 
     private void Items_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
@@ -287,6 +359,13 @@ public sealed partial class HotkeyListPage : Page
         _draggedHotkey = e.Items.FirstOrDefault() as HotkeyDefinition;
         _dragSourceGroup = (sender as FrameworkElement)?.DataContext as HotkeyGroup;
         _crossGroupDropHandled = false;
+
+        // WICHTIG: Die ListView legt sonst automatisch eine Textdarstellung der Zeile
+        // ins Drag-Paket. Landet der Drop ausserhalb des Fensters, fuegt die fremde App
+        // (z.B. Firefox) diesen Text ein bzw. sucht danach. Deshalb Text leeren und
+        // stattdessen ein eigenes Format setzen, mit dem nur diese App etwas anfangen kann.
+        e.Data.SetText(string.Empty);
+        e.Data.SetData(InternalDragFormat, hotkeyDragToken);
 
         e.Data.RequestedOperation = DataPackageOperation.Move;
     }

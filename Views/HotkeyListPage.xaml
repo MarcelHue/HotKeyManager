@@ -21,30 +21,32 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Griff zum Ziehen (6 Punkte) -->
-                    <Grid Grid.Column="0"
-                          VerticalAlignment="Center"
-                          Width="12"
-                          RowSpacing="3"
-                          ColumnSpacing="3"
-                          Opacity="0.55"
-                          ToolTipService.ToolTip="Ziehen zum Sortieren oder in einen Ordner verschieben">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Ellipse Grid.Row="0" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <Ellipse Grid.Row="0" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <Ellipse Grid.Row="1" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <Ellipse Grid.Row="1" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <Ellipse Grid.Row="2" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <Ellipse Grid.Row="2" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </Grid>
+                    <!-- Griff: ziehen zum Sortieren, klicken für das Verschieben-Menü -->
+                    <Button Grid.Column="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="4,8"
+                            VerticalAlignment="Center"
+                            Click="MoveMenu_Click"
+                            ToolTipService.ToolTip="Ziehen zum Sortieren – oder klicken für Verschieben-Menü">
+                        <Grid RowSpacing="3" ColumnSpacing="3" Opacity="0.55">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Grid.Row="0" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Ellipse Grid.Row="0" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Ellipse Grid.Row="1" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Ellipse Grid.Row="1" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Ellipse Grid.Row="2" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Ellipse Grid.Row="2" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                        </Grid>
+                    </Button>
 
                     <!-- Auslöser-Badge: Klick öffnet die Erfassungs-Optionen -->
                     <Button Grid.Column="1"

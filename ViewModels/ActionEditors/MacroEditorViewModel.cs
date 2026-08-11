@@ -15,12 +15,10 @@ namespace HotKeyManager.ViewModels.ActionEditors;
 /// </summary>
 public partial class MacroEditorViewModel : ActionEditorViewModelBase
 {
-    private string _validationMessage = "Bitte füge mindestens einen Baustein hinzu.";
     private bool _isSwitchingMode;
 
     public override string DisplayName => "Makro (Bausteine)";
     public override ActionType Type => ActionType.Macro;
-    public override string ValidationMessage => _validationMessage;
 
     /// <summary>Die Bausteine — jeweils das Editor-ViewModel des zugehoerigen Aktionstyps.</summary>
     public ObservableCollection<ActionEditorViewModelBase> Steps { get; } = new();
@@ -233,46 +231,13 @@ public partial class MacroEditorViewModel : ActionEditorViewModelBase
         return steps;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
-        if (IsSimpleMode)
-        {
-            var steps = BuildSimpleSteps();
-            if (steps.Count == 0)
-            {
-                _validationMessage = "Bitte gib einen Text ein oder erfasse eine Taste.";
-                return null;
-            }
-
-            return new MacroAction
-            {
-                Steps = steps,
-                StepDelayMs = Math.Clamp((int)StepDelayMs, 0, 60_000)
-            };
-        }
-
-        return BuildFromSteps();
-    }
-
-    private ActionBase? BuildFromSteps()
-    {
-        if (Steps.Count == 0)
-        {
-            _validationMessage = "Bitte füge mindestens einen Baustein hinzu.";
-            return null;
-        }
-
-        var steps = new List<ActionBase>();
-        for (int i = 0; i < Steps.Count; i++)
-        {
-            var stepAction = Steps[i].BuildAction();
-            if (stepAction == null)
-            {
-                _validationMessage = $"Baustein {i + 1} ({Steps[i].DisplayName}): {Steps[i].ValidationMessage}";
-                return null;
-            }
-            steps.Add(stepAction);
-        }
+        // Auch unvollstaendige oder leere Bausteine werden uebernommen —
+        // ein Makro darf als Entwurf gespeichert werden.
+        var steps = IsSimpleMode
+            ? BuildSimpleSteps()
+            : Steps.Select(s => s.BuildAction()).ToList();
 
         return new MacroAction
         {
@@ -280,6 +245,12 @@ public partial class MacroEditorViewModel : ActionEditorViewModelBase
             StepDelayMs = Math.Clamp((int)StepDelayMs, 0, 60_000)
         };
     }
+
+    private ActionBase BuildFromSteps() => new MacroAction
+    {
+        Steps = Steps.Select(s => s.BuildAction()).ToList(),
+        StepDelayMs = Math.Clamp((int)StepDelayMs, 0, 60_000)
+    };
 
     public override void CancelCapture()
     {

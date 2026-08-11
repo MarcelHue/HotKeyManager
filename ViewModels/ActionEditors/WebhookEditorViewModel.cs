@@ -23,7 +23,6 @@ public partial class WebhookEditorViewModel : ActionEditorViewModelBase
 
     public override string DisplayName => "Webhook aufrufen";
     public override ActionType Type => ActionType.Webhook;
-    public override string ValidationMessage => "Bitte gib eine Webhook-URL ein.";
 
     [ObservableProperty]
     private string _url = string.Empty;
@@ -50,11 +49,8 @@ public partial class WebhookEditorViewModel : ActionEditorViewModelBase
         ContentTypeIndex = index >= 0 ? index : 0;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
-        if (string.IsNullOrWhiteSpace(Url))
-            return null;
-
         return new WebhookAction
         {
             Url = Url.Trim(),

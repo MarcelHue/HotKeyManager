@@ -42,7 +42,8 @@ Windows-native application for managing global hotkeys system-wide. Users define
 - Pages are thin; logic lives in `ViewModels/` (CommunityToolkit.Mvvm, `x:Bind`).
 - ViewModels get services via constructor defaults from `App.Current` singletons (no DI container).
 - Hotkey editor is a **page** (`HotkeyEditorPage`), navigated with `EditorNavArgs { Hotkey?, PreselectType? }` — not a dialog.
-- **Adding a new action type** = Model class (+ `JsonDerivedType` on `ActionBase`) + editor VM (extends `ActionEditorViewModelBase`) + editor UserControl + one DataTemplate entry in `ActionEditorTemplateSelector`/`HotkeyEditorPage.xaml` + one entry in `HotkeyEditorViewModel.ActionEditors`.
+- **Adding a new action type** = Model class (+ `JsonDerivedType` on `ActionBase`) + editor VM (extends `ActionEditorViewModelBase`) + editor UserControl + one DataTemplate entry in `ActionEditorTemplateSelector`/`HotkeyEditorPage.xaml` + one entry in `MacroEditorViewModel.CreateEditorFor` and the add-block flyout.
+- `ActionEditorViewModelBase.BuildAction()` must **always** return an object, never null — macros are saveable as drafts with empty/incomplete blocks. Only name and at least one trigger are enforced.
 - Theme (light/dark/system) via `ThemeService.Apply()` — sets `RequestedTheme` on window content, persisted in `AppSettings.Theme`.
 - Keyboard-hook events arrive on the **hook thread**; ViewModels marshal via `DispatcherQueue.TryEnqueue`.
 - Editor page calls `ViewModel.CancelAllCaptures()` in `OnNavigatedFrom` — never leave `KeyboardHookService.IsCapturing` set.
@@ -142,7 +143,7 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 
 | View | Purpose |
 |---|---|
-| `HotkeyListPage` | Hotkeys grouped into collapsible folders (`HotkeyDefinition.Group`, one level). Per row: drag handle (reorder + drop onto another folder), trigger badge with a flyout to (re)capture key/MIDI inline, inline rename (double-tap or pencil), toggle, run, folder assign, edit, duplicate, delete. Search disables reordering |
+| `HotkeyListPage` | Hotkeys grouped into collapsible folders (`HotkeyDefinition.Group`, one level). Per row: drag handle (drag to reorder / drop onto another folder, **click** for a move menu), trigger badge with a flyout to (re)capture key/MIDI inline, inline rename (double-tap or pencil), toggle, run, folder assign, edit, duplicate, delete. Search disables reordering. `DragItemsStarting` clears the auto-generated text in the data package and sets an app-private format — otherwise dropping outside the window pastes/searches that text in other apps (e.g. Firefox) |
 | `HotkeyEditorPage` | Create / edit a hotkey (full page, scrolls; key capture + window capture) |
 | `Views/ActionEditors/*` | One UserControl per action type, selected via `ActionEditorTemplateSelector` |
 | `SettingsPage` | Theme, startup/tray, kernel driver, import/export, update check |

@@ -16,7 +16,14 @@ public partial class MidiSendEditorViewModel : ActionEditorViewModelBase
 
     public override string DisplayName => "MIDI senden";
     public override ActionType Type => ActionType.MidiSend;
-    public override string ValidationMessage => "Bitte prüfe die MIDI-Einstellungen.";
+
+    /// <summary>
+    /// Merkt sich, aus welchem Preset-Befehl die Werte stammen (fuer die Anzeige in der Liste).
+    /// Sobald ein Wert von Hand geaendert wird, entfaellt die Zuordnung.
+    /// </summary>
+    private string? _presetName;
+    private string? _presetCommandName;
+    private bool _applyingPreset;
 
     /// <summary>Verfuegbare Ausgabegeraete; Index 0 = "Erstes verfügbares Gerät".</summary>
     public ObservableCollection<string> Devices { get; } = new();
@@ -103,12 +110,39 @@ public partial class MidiSendEditorViewModel : ActionEditorViewModelBase
         if (value < 0 || value >= PresetCommands.Count) return;
 
         var command = PresetCommands[value];
-        KindIndex = command.ParsedKind == MidiTriggerKind.NoteOn ? 0 : 1;
-        Channel = Math.Clamp(command.Channel, 1, 16);
-        Number = Math.Clamp(command.Number, 0, 127);
-        Value = Math.Clamp(command.Value, 0, 127);
-        ToggleValues = command.Toggle;
-        ValueB = Math.Clamp(command.ValueB, 0, 127);
+
+        _applyingPreset = true;
+        try
+        {
+            KindIndex = command.ParsedKind == MidiTriggerKind.NoteOn ? 0 : 1;
+            Channel = Math.Clamp(command.Channel, 1, 16);
+            Number = Math.Clamp(command.Number, 0, 127);
+            Value = Math.Clamp(command.Value, 0, 127);
+            ToggleValues = command.Toggle;
+            ValueB = Math.Clamp(command.ValueB, 0, 127);
+        }
+        finally
+        {
+            _applyingPreset = false;
+        }
+
+        _presetName = HasSelectedPreset ? Presets[PresetIndex].Name : null;
+        _presetCommandName = command.Name;
+    }
+
+    // Werte von Hand geaendert -> Zuordnung zum Preset-Befehl verwerfen
+    partial void OnKindIndexChanged(int value) => ForgetPresetLink();
+    partial void OnChannelChanged(double value) => ForgetPresetLink();
+    partial void OnNumberChanged(double value) => ForgetPresetLink();
+    partial void OnValueChanged(double value) => ForgetPresetLink();
+    partial void OnValueBChanged(double value) => ForgetPresetLink();
+    partial void OnToggleValuesChanged(bool value) => ForgetPresetLink();
+
+    private void ForgetPresetLink()
+    {
+        if (_applyingPreset) return;
+        _presetName = null;
+        _presetCommandName = null;
     }
 
     /// <summary>Aktuelle Einstellungen als Preset-Eintrag.</summary>
@@ -207,6 +241,49 @@ public partial class MidiSendEditorViewModel : ActionEditorViewModelBase
         return true;
     }
 
+    /// <summary>
+    /// Oeffnet die JSON-Datei des gewaehlten Presets im Standardprogramm.
+    /// Mitgelieferte Presets werden vorher in den Benutzer-Ordner kopiert, damit
+    /// Aenderungen App-Updates ueberleben.
+    /// </summary>
+    public bool OpenPresetFile()
+    {
+        if (!HasSelectedPreset) return false;
+
+        var preset = Presets[PresetIndex];
+
+        var isUserCopy = !string.IsNullOrEmpty(preset.FilePath)
+            && preset.FilePath!.StartsWith(MidiPresetService.UserFolder, StringComparison.OrdinalIgnoreCase);
+
+        if (!isUserCopy && !_presetService.Save(preset))
+            return false;
+
+        if (string.IsNullOrEmpty(preset.FilePath) || !File.Exists(preset.FilePath))
+            return false;
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = preset.FilePath,
+                UseShellExecute = true
+            });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error("Preset-Datei konnte nicht geöffnet werden", ex);
+            return false;
+        }
+    }
+
+    /// <summary>Liest die Presets neu von der Platte (nach externem Bearbeiten).</summary>
+    public void ReloadFromDisk()
+    {
+        var current = HasSelectedPreset ? Presets[PresetIndex] : null;
+        ReloadPresets(current);
+    }
+
     #endregion
 
     public MidiSendEditorViewModel()
@@ -222,13 +299,25 @@ public partial class MidiSendEditorViewModel : ActionEditorViewModelBase
     {
         if (action is not MidiSendAction midi) return;
 
-        KindIndex = midi.Kind == MidiTriggerKind.NoteOn ? 0 : 1;
-        Channel = midi.Channel + 1;
-        Number = midi.Number;
-        Value = midi.Value;
-        ToggleValues = midi.ToggleValues;
-        ValueB = midi.ValueB;
-        NoteOffAfterMs = midi.NoteOffAfterMs;
+        _applyingPreset = true;
+        try
+        {
+            KindIndex = midi.Kind == MidiTriggerKind.NoteOn ? 0 : 1;
+            Channel = midi.Channel + 1;
+            Number = midi.Number;
+            Value = midi.Value;
+            ToggleValues = midi.ToggleValues;
+            ValueB = midi.ValueB;
+            NoteOffAfterMs = midi.NoteOffAfterMs;
+        }
+        finally
+        {
+            _applyingPreset = false;
+        }
+
+        // Preset-Zuordnung der gespeicherten Aktion erhalten
+        _presetName = midi.PresetName;
+        _presetCommandName = midi.PresetCommandName;
 
         if (!string.IsNullOrWhiteSpace(midi.DeviceName))
         {
@@ -244,10 +333,12 @@ public partial class MidiSendEditorViewModel : ActionEditorViewModelBase
         }
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
         return new MidiSendAction
         {
+            PresetName = _presetName,
+            PresetCommandName = _presetCommandName,
             DeviceName = DeviceIndex > 0 && DeviceIndex < Devices.Count ? Devices[DeviceIndex] : string.Empty,
             Kind = KindIndex == 0 ? MidiTriggerKind.NoteOn : MidiTriggerKind.ControlChange,
             Channel = (byte)Math.Clamp((int)Channel - 1, 0, 15),

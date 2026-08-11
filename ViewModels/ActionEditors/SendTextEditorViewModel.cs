@@ -11,7 +11,6 @@ public partial class SendTextEditorViewModel : ActionEditorViewModelBase
 {
     public override string DisplayName => "Text-Makro (Text senden)";
     public override ActionType Type => ActionType.SendText;
-    public override string ValidationMessage => "Bitte gib den Text ein, der gesendet werden soll.";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatsText))]
@@ -43,14 +42,11 @@ public partial class SendTextEditorViewModel : ActionEditorViewModelBase
         CharDelayMs = sendText.CharDelayMs;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
-        if (string.IsNullOrWhiteSpace(Text))
-            return null;
-
         return new SendTextAction
         {
-            Text = Text,
+            Text = Text ?? string.Empty,
             CharDelayMs = Math.Clamp((int)CharDelayMs, 0, 500)
         };
     }

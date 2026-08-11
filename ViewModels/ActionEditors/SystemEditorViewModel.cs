@@ -22,7 +22,6 @@ public partial class SystemEditorViewModel : ActionEditorViewModelBase
 
     public override string DisplayName => "Windows-Aktion";
     public override ActionType Type => ActionType.System;
-    public override string ValidationMessage => "Bitte wähle eine Windows-Aktion.";
 
     [ObservableProperty]
     private int _kindIndex;
@@ -35,7 +34,7 @@ public partial class SystemEditorViewModel : ActionEditorViewModelBase
         KindIndex = index >= 0 ? index : 0;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
         return new SystemAction
         {

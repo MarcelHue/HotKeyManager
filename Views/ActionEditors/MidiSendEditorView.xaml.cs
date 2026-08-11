@@ -91,6 +91,32 @@ public sealed partial class MidiSendEditorView : UserControl
             "Der Eintrag konnte nicht aktualisiert werden.");
     }
 
+    private async void OpenPresetFile_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        if (!ViewModel.OpenPresetFile())
+        {
+            await ShowResult(false, "", "",
+                "Die Preset-Datei konnte nicht geöffnet werden.");
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = "Preset-Datei geöffnet",
+            Content = "Die JSON-Datei wurde im Standardprogramm geöffnet. "
+                    + "Speichere dort deine Änderungen und klicke anschließend auf „Neu laden“.",
+            PrimaryButtonText = "Neu laden",
+            CloseButtonText = "Später",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            ViewModel.ReloadFromDisk();
+    }
+
     private async Task ShowResult(bool success, string successTitle, string successMessage, string errorMessage)
     {
         var dialog = new ContentDialog

@@ -7,7 +7,6 @@ public partial class BatchEditorViewModel : ActionEditorViewModelBase
 {
     public override string DisplayName => "Batch-Befehl ausführen";
     public override ActionType Type => ActionType.BatchCommand;
-    public override string ValidationMessage => "Bitte gib einen Befehl ein.";
 
     [ObservableProperty]
     private string _command = string.Empty;
@@ -31,11 +30,8 @@ public partial class BatchEditorViewModel : ActionEditorViewModelBase
         WaitForExit = batch.WaitForExit;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
-        if (string.IsNullOrWhiteSpace(Command))
-            return null;
-
         return new BatchAction
         {
             Command = Command,

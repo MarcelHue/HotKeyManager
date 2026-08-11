@@ -8,7 +8,6 @@ public partial class DelayEditorViewModel : ActionEditorViewModelBase
 {
     public override string DisplayName => "Verzögerung";
     public override ActionType Type => ActionType.Delay;
-    public override string ValidationMessage => "Bitte gib eine gültige Dauer an.";
 
     [ObservableProperty]
     private double _durationMs = 500;
@@ -19,7 +18,7 @@ public partial class DelayEditorViewModel : ActionEditorViewModelBase
         DurationMs = delay.DurationMs;
     }
 
-    public override ActionBase? BuildAction()
+    public override ActionBase BuildAction()
     {
         return new DelayAction
         {
