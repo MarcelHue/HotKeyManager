@@ -8,138 +8,148 @@ using Velopack;
 namespace HotKeyManager.ViewModels;
 
 /// <summary>
-/// ViewModel fuer die Shell (MainWindow): Hook-/Treiber-Status im PaneFooter
-/// und die Update-Benachrichtigung.
+/// View model of the shell (MainWindow): hook and driver status in the pane footer
+/// and the update notification.
 /// </summary>
 public partial class MainViewModel : ObservableObject
 {
     private static readonly Windows.UI.Color StatusGreen = Windows.UI.Color.FromArgb(255, 74, 222, 128);
     private static readonly Windows.UI.Color StatusAmber = Windows.UI.Color.FromArgb(255, 251, 191, 36);
     private static readonly Windows.UI.Color StatusGray = Windows.UI.Color.FromArgb(255, 107, 114, 128);
-
-    private readonly UpdateService _updateService;
-    private DispatcherQueue? _dispatcherQueue;
-    private DispatcherQueueTimer? _updateCheckTimer;
-    private UpdateInfo? _pendingUpdate;
-
     private static readonly Windows.UI.Color StatusRed = Windows.UI.Color.FromArgb(255, 239, 68, 68);
 
-    [ObservableProperty]
-    private string _hookStatusText = "Inaktiv";
+    // Periodic checks let a long-running app still show new releases in time.
+    private static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromMinutes(15);
+
+    private readonly UpdateService updateService;
+    private DispatcherQueue? dispatcherQueue;
+    private DispatcherQueueTimer? updateCheckTimer;
+    private UpdateInfo? pendingUpdate;
 
     [ObservableProperty]
-    private SolidColorBrush _hookStatusBrush = new(StatusRed);
+    private string hookStatusText = "Inaktiv";
 
     [ObservableProperty]
-    private string _driverStatusText = "Nicht installiert";
+    private SolidColorBrush hookStatusBrush = new(StatusRed);
 
     [ObservableProperty]
-    private SolidColorBrush _driverStatusBrush = new(StatusGray);
+    private string driverStatusText = "Nicht installiert";
 
     [ObservableProperty]
-    private bool _isUpdateBannerVisible;
+    private SolidColorBrush driverStatusBrush = new(StatusGray);
 
     [ObservableProperty]
-    private string _updateBannerText = string.Empty;
+    private bool isUpdateBannerVisible;
 
     [ObservableProperty]
-    private string _updateButtonText = "Jetzt aktualisieren";
+    private string updateBannerText = string.Empty;
 
     [ObservableProperty]
-    private bool _isUpdateButtonEnabled = true;
+    private string updateButtonText = "Jetzt aktualisieren";
 
-    public string VersionText => $"Version {_updateService.CurrentVersion}";
+    [ObservableProperty]
+    private bool isUpdateButtonEnabled = true;
 
+    /// <summary>Creates the view model; the update service defaults to the app-wide instance.</summary>
     public MainViewModel(UpdateService? updateService = null)
     {
-        _updateService = updateService ?? App.Current.UpdateService;
-        RefreshStatus();
+        this.updateService = updateService ?? App.Current.UpdateService;
+        this.RefreshStatus();
     }
 
-    /// <summary>
-    /// Aktualisiert Hook- und Treiber-Status (wird per Timer alle 5s aufgerufen).
-    /// WICHTIG: Wenn der InterceptionService laeuft, den Status direkt ablesen.
-    /// InputInterceptor.Initialize() (IsDriverActive) darf NICHT aufgerufen werden,
-    /// waehrend der KeyboardHook aktiv ist — das erzeugt einen zweiten
-    /// Interception-Context und fuehrt zu einem nativen Access Violation.
-    /// </summary>
+    /// <summary>Version line for the pane footer.</summary>
+    public string VersionText => $"Version {this.updateService.CurrentVersion}";
+
+    /// <summary>Refreshes the hook and driver status; the main window calls this on a timer.</summary>
+    /// <remarks>
+    /// While the InterceptionService runs, its state is read directly. InputInterceptor.Initialize()
+    /// (IsDriverActive) must not be called while the keyboard hook is active: it creates a second
+    /// Interception context and causes a native access violation.
+    /// </remarks>
     public void RefreshStatus()
     {
         var hookRunning = App.Current.KeyboardHookService.IsRunning;
-        HookStatusText = hookRunning ? "Aktiv" : "Inaktiv";
-        HookStatusBrush = new SolidColorBrush(hookRunning ? StatusGreen : StatusRed);
+        this.HookStatusText = hookRunning ? "Aktiv" : "Inaktiv";
+        this.HookStatusBrush = new SolidColorBrush(hookRunning ? StatusGreen : StatusRed);
 
         if (App.Current.InterceptionService.IsRunning)
         {
-            DriverStatusText = "Aktiv";
-            DriverStatusBrush = new SolidColorBrush(StatusGreen);
+            this.DriverStatusText = "Aktiv";
+            this.DriverStatusBrush = new SolidColorBrush(StatusGreen);
         }
         else if (InterceptionService.IsDriverInstalled())
         {
-            DriverStatusText = "Neustart nötig";
-            DriverStatusBrush = new SolidColorBrush(StatusAmber);
+            this.DriverStatusText = "Neustart nötig";
+            this.DriverStatusBrush = new SolidColorBrush(StatusAmber);
         }
         else
         {
-            DriverStatusText = "Nicht installiert";
-            DriverStatusBrush = new SolidColorBrush(StatusGray);
+            this.DriverStatusText = "Nicht installiert";
+            this.DriverStatusBrush = new SolidColorBrush(StatusGray);
         }
     }
 
     /// <summary>
-    /// Startet Update-Checks: einmal sofort, danach alle 15 Minuten —
-    /// so erscheint die Update-Anzeige auch bei dauerhaft laufender App zeitnah.
-    /// Vom MainWindow auf dem UI-Thread aufgerufen; No-Op im Entwicklungs-Build.
+    /// Starts the update checks: once right away, then periodically.
+    /// Must be called on the UI thread; does nothing in a development build.
     /// </summary>
     public void StartUpdateChecks()
     {
-        if (!_updateService.IsSupported) return;
+        if (!this.updateService.IsSupported)
+        {
+            return;
+        }
 
-        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        this.dispatcherQueue = DispatcherQueue.GetForCurrentThread();
 
-        _ = CheckForUpdatesAsync();
+        _ = this.CheckForUpdatesAsync();
 
-        _updateCheckTimer = _dispatcherQueue.CreateTimer();
-        _updateCheckTimer.Interval = TimeSpan.FromMinutes(15);
-        _updateCheckTimer.Tick += (s, e) => _ = CheckForUpdatesAsync();
-        _updateCheckTimer.Start();
+        this.updateCheckTimer = this.dispatcherQueue.CreateTimer();
+        this.updateCheckTimer.Interval = UpdateCheckInterval;
+        this.updateCheckTimer.Tick += (s, e) => _ = this.CheckForUpdatesAsync();
+        this.updateCheckTimer.Start();
+    }
+
+    /// <summary>Shows the update banner; also used by the manual check in the settings.</summary>
+    public void ShowUpdateAvailable(UpdateInfo updateInfo)
+    {
+        this.pendingUpdate = updateInfo;
+        this.UpdateBannerText = $"Version {updateInfo.TargetFullRelease.Version} ist verfügbar.";
+        this.IsUpdateBannerVisible = true;
     }
 
     private async Task CheckForUpdatesAsync()
     {
-        var updateInfo = await _updateService.CheckForUpdatesAsync();
-        if (updateInfo != null)
-            ShowUpdateAvailable(updateInfo);
-    }
-
-    /// <summary>Zeigt die Update-Leiste an (auch vom manuellen Check in den Einstellungen genutzt).</summary>
-    public void ShowUpdateAvailable(UpdateInfo updateInfo)
-    {
-        _pendingUpdate = updateInfo;
-        UpdateBannerText = $"Version {updateInfo.TargetFullRelease.Version} ist verfügbar.";
-        IsUpdateBannerVisible = true;
+        var updateInfo = await this.updateService.CheckForUpdatesAsync();
+        if (updateInfo is not null)
+        {
+            this.ShowUpdateAvailable(updateInfo);
+        }
     }
 
     [RelayCommand]
     private async Task UpdateNowAsync()
     {
-        if (_pendingUpdate == null) return;
+        if (this.pendingUpdate is null)
+        {
+            return;
+        }
 
-        IsUpdateButtonEnabled = false;
+        this.IsUpdateButtonEnabled = false;
         try
         {
-            await _updateService.DownloadAndApplyAsync(_pendingUpdate, percent =>
-            {
-                // Progress-Callback kann von einem Hintergrund-Thread kommen
-                _dispatcherQueue?.TryEnqueue(() => UpdateButtonText = $"Lade… {percent}%");
-            });
-            // App wird von Velopack neu gestartet — hierhin kommen wir normalerweise nicht mehr
+            // The progress callback can run on a background thread.
+            await this.updateService.DownloadAndApplyAsync(
+                this.pendingUpdate,
+                percent => this.dispatcherQueue?.TryEnqueue(() => this.UpdateButtonText = $"Lade… {percent}%"));
+
+            // Velopack restarts the app, so this point is normally never reached.
         }
         catch (Exception ex)
         {
-            UpdateBannerText = $"Update fehlgeschlagen: {ex.Message}";
-            UpdateButtonText = "Erneut versuchen";
-            IsUpdateButtonEnabled = true;
+            this.UpdateBannerText = $"Update fehlgeschlagen: {ex.Message}";
+            this.UpdateButtonText = "Erneut versuchen";
+            this.IsUpdateButtonEnabled = true;
         }
     }
 }

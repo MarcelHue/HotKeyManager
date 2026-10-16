@@ -1,27 +1,12 @@
 namespace HotKeyManager.Services;
 
-public enum LogLevel
-{
-    Debug = 0,
-    Info = 1,
-    Warning = 2,
-    Error = 3
-}
-
-public class LogMessageEventArgs : EventArgs
-{
-    public LogLevel Level { get; }
-    public string Message { get; }
-
-    public LogMessageEventArgs(LogLevel level, string message)
-    {
-        Level = level;
-        Message = message;
-    }
-}
-
+/// <summary>
+/// Writes the app log to %APPDATA%\HotKeyManager and raises <see cref="ErrorOccurred"/> for warnings and errors.
+/// </summary>
 public class LogService : IDisposable
 {
+    private const long MaxLogFileSize = 5 * 1024 * 1024;
+
     private static readonly string LogFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "HotKeyManager");
@@ -29,80 +14,116 @@ public class LogService : IDisposable
     private static readonly string LogPath = Path.Combine(LogFolder, "hotkey-manager.log");
     private static readonly string LogBackupPath = Path.Combine(LogFolder, "hotkey-manager.log.bak");
 
-    private const long MaxLogFileSize = 5 * 1024 * 1024; // 5 MB
+    private readonly SemaphoreSlim writeLock = new(1, 1);
+    private StreamWriter? writer;
+    private bool disposed;
 
-    private readonly SemaphoreSlim _writeLock = new(1, 1);
-    private StreamWriter? _writer;
-    private bool _disposed;
+    ~LogService() => this.Dispose();
 
-    public LogLevel MinLogLevel { get; set; } = LogLevel.Warning;
-
+    /// <summary>Raised for every entry of level Warning or higher; may come from any thread.</summary>
     public event EventHandler<LogMessageEventArgs>? ErrorOccurred;
 
+    /// <summary>Entries below this level are dropped.</summary>
+    public LogLevel MinLogLevel { get; set; } = LogLevel.Warning;
+
+    /// <summary>Parses a level name from the settings; unknown values fall back to Warning.</summary>
+    public static LogLevel ParseLogLevel(string? value) => value?.ToLowerInvariant() switch
+    {
+        "debug" => LogLevel.Debug,
+        "info" => LogLevel.Info,
+        "warning" => LogLevel.Warning,
+        "error" => LogLevel.Error,
+        _ => LogLevel.Warning
+    };
+
+    /// <summary>Writes an entry in the background if it reaches <see cref="MinLogLevel"/>.</summary>
     public void Log(LogLevel level, string message, Exception? ex = null)
     {
-        if (level < MinLogLevel) return;
+        if (level < this.MinLogLevel)
+        {
+            return;
+        }
 
-        var fullMessage = ex != null ? $"{message}: {ex.Message}" : message;
+        var fullMessage = ex is not null ? $"{message}: {ex.Message}" : message;
         var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level.ToString().ToUpper()}] {fullMessage}";
 
-        _ = WriteLineAsync(line);
+        _ = this.WriteLineAsync(line);
 
         if (level >= LogLevel.Warning)
         {
-            ErrorOccurred?.Invoke(this, new LogMessageEventArgs(level, fullMessage));
+            this.ErrorOccurred?.Invoke(this, new LogMessageEventArgs(level, fullMessage));
         }
     }
 
-    public void Debug(string message) => Log(LogLevel.Debug, message);
-    public void Info(string message) => Log(LogLevel.Info, message);
-    public void Warning(string message, Exception? ex = null) => Log(LogLevel.Warning, message, ex);
-    public void Error(string message, Exception? ex = null) => Log(LogLevel.Error, message, ex);
+    /// <summary>Logs at level Debug.</summary>
+    public void Debug(string message) => this.Log(LogLevel.Debug, message);
+
+    /// <summary>Logs at level Info.</summary>
+    public void Info(string message) => this.Log(LogLevel.Info, message);
+
+    /// <summary>Logs at level Warning.</summary>
+    public void Warning(string message, Exception? ex = null) => this.Log(LogLevel.Warning, message, ex);
+
+    /// <summary>Logs at level Error.</summary>
+    public void Error(string message, Exception? ex = null) => this.Log(LogLevel.Error, message, ex);
 
     /// <summary>
-    /// Synchroner Schreibvorgang fuer fatale Crashes. Umgeht den async-Writer und schreibt
-    /// direkt in die Datei, da bei einem Crash der async-Write nicht mehr abgeschlossen wird.
+    /// Writes synchronously, bypassing the async writer, because during a fatal crash
+    /// an async write would not complete anymore.
     /// </summary>
     public void Fatal(string message, Exception? ex = null)
     {
         try
         {
-            var fullMessage = ex != null
-                ? $"{message}: {ex.Message}\n{ex.StackTrace}"
-                : message;
+            var fullMessage = ex is not null ? $"{message}: {ex.Message}\n{ex.StackTrace}" : message;
             var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [FATAL] {fullMessage}";
 
             Directory.CreateDirectory(LogFolder);
             File.AppendAllText(LogPath, line + Environment.NewLine);
         }
-        catch
+        catch (Exception)
         {
-            // Absoluter Notfall - nichts mehr zu tun
+            // The app is already crashing and the log itself failed; there is nowhere left to report it.
         }
+    }
+
+    /// <summary>Closes the log file.</summary>
+    public void Dispose()
+    {
+        if (this.disposed)
+        {
+            return;
+        }
+
+        this.writer?.Dispose();
+        this.writer = null;
+        this.writeLock.Dispose();
+        this.disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     private async Task WriteLineAsync(string line)
     {
         try
         {
-            await _writeLock.WaitAsync();
+            await this.writeLock.WaitAsync();
             try
             {
-                await EnsureWriterAsync();
-                if (_writer != null)
+                await this.EnsureWriterAsync();
+                if (this.writer is not null)
                 {
-                    await _writer.WriteLineAsync(line);
-                    await _writer.FlushAsync();
+                    await this.writer.WriteLineAsync(line);
+                    await this.writer.FlushAsync();
                 }
             }
             finally
             {
-                _writeLock.Release();
+                this.writeLock.Release();
             }
         }
-        catch
+        catch (Exception)
         {
-            // Last resort: don't let logging crash the app
+            // A failing logger must not crash the app, and it cannot log its own failure.
         }
     }
 
@@ -110,68 +131,47 @@ public class LogService : IDisposable
     {
         Directory.CreateDirectory(LogFolder);
 
-        if (_writer != null)
+        if (this.writer is not null)
         {
             try
             {
                 var fileInfo = new FileInfo(LogPath);
-                if (fileInfo.Exists && fileInfo.Length >= MaxLogFileSize)
-                {
-                    await _writer.DisposeAsync();
-                    _writer = null;
-                    RotateLogFile();
-                }
-                else
+                if (!fileInfo.Exists || (fileInfo.Length < MaxLogFileSize))
                 {
                     return;
                 }
+
+                await this.writer.DisposeAsync();
+                this.writer = null;
+                RotateLogFile();
             }
-            catch
+            catch (Exception)
             {
-                _writer = null;
+                // Open a fresh writer below; the logger cannot log its own failure.
+                this.writer = null;
             }
         }
 
-        _writer = new StreamWriter(LogPath, append: true) { AutoFlush = false };
+        this.writer = new StreamWriter(LogPath, append: true) { AutoFlush = false };
     }
 
-    private void RotateLogFile()
+    private static void RotateLogFile()
     {
         try
         {
             if (File.Exists(LogBackupPath))
+            {
                 File.Delete(LogBackupPath);
+            }
 
             if (File.Exists(LogPath))
+            {
                 File.Move(LogPath, LogBackupPath);
+            }
         }
-        catch
+        catch (Exception)
         {
-            // Rotation failed — continue with the existing file
+            // Keep writing to the existing file; the logger cannot log its own failure.
         }
     }
-
-    public static LogLevel ParseLogLevel(string? value)
-    {
-        return value?.ToLowerInvariant() switch
-        {
-            "debug" => LogLevel.Debug,
-            "info" => LogLevel.Info,
-            "warning" => LogLevel.Warning,
-            "error" => LogLevel.Error,
-            _ => LogLevel.Warning
-        };
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _writer?.Dispose();
-        _writer = null;
-        _writeLock.Dispose();
-        _disposed = true;
-        GC.SuppressFinalize(this);
-    }
-
-    ~LogService() => Dispose();
 }

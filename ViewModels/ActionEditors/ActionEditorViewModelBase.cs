@@ -4,35 +4,37 @@ using HotKeyManager.Models;
 namespace HotKeyManager.ViewModels.ActionEditors;
 
 /// <summary>
-/// Basisklasse fuer alle Aktionstyp-Editoren.
-/// Ein neuer Aktionstyp braucht: Model-Klasse, ein Editor-ViewModel (diese Basis),
-/// ein Editor-UserControl, ein DataTemplate im TemplateSelector und einen Eintrag
-/// in HotkeyEditorViewModel.ActionEditors.
+/// Base class for all action type editors.
+/// A new action type needs a model class, an editor view model (derived from this class),
+/// an editor UserControl, a DataTemplate in the template selector and an entry in
+/// HotkeyEditorViewModel.ActionEditors.
 /// </summary>
 public abstract partial class ActionEditorViewModelBase : ObservableObject
 {
     /// <summary>
-    /// Aufgeklappt-Zustand im Makro-Editor. Kurze Makros werden komplett
-    /// aufgeklappt geladen, damit man alles ohne Klicks sieht.
+    /// Expanded state in the macro editor. Short macros load fully expanded
+    /// so everything is visible without extra clicks.
     /// </summary>
     [ObservableProperty]
-    private bool _isExpanded;
+    private bool isExpanded;
 
-    /// <summary>Anzeigename im Aktionstyp-Dropdown.</summary>
+    /// <summary>Display name in the action type drop-down.</summary>
     public abstract string DisplayName { get; }
 
-    /// <summary>Der Aktionstyp, den dieser Editor bearbeitet.</summary>
+    /// <summary>The action type this editor edits.</summary>
     public abstract ActionType Type { get; }
 
-    /// <summary>Befuellt die Editor-Felder aus einer bestehenden Aktion.</summary>
+    /// <summary>Fills the editor fields from an existing action.</summary>
     public abstract void LoadFrom(ActionBase action);
 
     /// <summary>
-    /// Baut die Aktion aus den Editor-Feldern. Liefert immer ein Objekt — auch bei
-    /// leeren Feldern, damit Makros als Entwurf gespeichert werden koennen.
+    /// Builds the action from the editor fields. Always returns an object, even for empty fields,
+    /// so macros can be saved as drafts.
     /// </summary>
     public abstract ActionBase BuildAction();
 
-    /// <summary>Stoppt laufende Capture-/Aufnahme-Vorgaenge (z.B. beim Verlassen der Seite).</summary>
-    public virtual void CancelCapture() { }
+    /// <summary>Stops running key captures or recordings, e.g. when the user leaves the page.</summary>
+    public virtual void CancelCapture()
+    {
+    }
 }

@@ -5,8 +5,8 @@ using Microsoft.UI.Xaml.Controls;
 namespace HotKeyManager.Views.ActionEditors;
 
 /// <summary>
-/// Waehlt das passende Editor-Template fuer das jeweilige Aktionstyp-ViewModel.
-/// Neuer Aktionstyp: Template-Property ergaenzen + Zuordnung in SelectTemplateCore.
+/// Picks the editor template for an action-type ViewModel.
+/// A new action type needs a template property here and a case in SelectTemplateCore.
 /// </summary>
 public class ActionEditorTemplateSelector : DataTemplateSelector
 {
@@ -20,22 +20,19 @@ public class ActionEditorTemplateSelector : DataTemplateSelector
     public DataTemplate? SystemTemplate { get; set; }
     public DataTemplate? MidiSendTemplate { get; set; }
 
-    protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container)
+    protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container) => item switch
     {
-        return item switch
-        {
-            WebhookEditorViewModel => WebhookTemplate,
-            KeySequenceEditorViewModel => KeySequenceTemplate,
-            ProcessEditorViewModel => ProcessTemplate,
-            BatchEditorViewModel => BatchTemplate,
-            SendTextEditorViewModel => SendTextTemplate,
-            DelayEditorViewModel => DelayTemplate,
-            MacroEditorViewModel => MacroTemplate,
-            SystemEditorViewModel => SystemTemplate,
-            MidiSendEditorViewModel => MidiSendTemplate,
-            _ => null
-        };
-    }
+        WebhookEditorViewModel => this.WebhookTemplate,
+        KeySequenceEditorViewModel => this.KeySequenceTemplate,
+        ProcessEditorViewModel => this.ProcessTemplate,
+        BatchEditorViewModel => this.BatchTemplate,
+        SendTextEditorViewModel => this.SendTextTemplate,
+        DelayEditorViewModel => this.DelayTemplate,
+        MacroEditorViewModel => this.MacroTemplate,
+        SystemEditorViewModel => this.SystemTemplate,
+        MidiSendEditorViewModel => this.MidiSendTemplate,
+        _ => null
+    };
 
-    protected override DataTemplate? SelectTemplateCore(object item) => SelectTemplateCore(item, null!);
+    protected override DataTemplate? SelectTemplateCore(object item) => this.SelectTemplateCore(item, null!);
 }

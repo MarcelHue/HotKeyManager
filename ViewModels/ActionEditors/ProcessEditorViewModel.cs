@@ -3,46 +3,52 @@ using HotKeyManager.Models;
 
 namespace HotKeyManager.ViewModels.ActionEditors;
 
+/// <summary>Editor for the block that starts a program.</summary>
 public partial class ProcessEditorViewModel : ActionEditorViewModelBase
 {
+    [ObservableProperty]
+    private string filePath = string.Empty;
+
+    [ObservableProperty]
+    private string arguments = string.Empty;
+
+    [ObservableProperty]
+    private string workingDirectory = string.Empty;
+
+    [ObservableProperty]
+    private bool runAsAdmin;
+
+    [ObservableProperty]
+    private bool hidden;
+
+    /// <inheritdoc />
     public override string DisplayName => "Programm starten";
+
+    /// <inheritdoc />
     public override ActionType Type => ActionType.StartProcess;
 
-    [ObservableProperty]
-    private string _filePath = string.Empty;
-
-    [ObservableProperty]
-    private string _arguments = string.Empty;
-
-    [ObservableProperty]
-    private string _workingDirectory = string.Empty;
-
-    [ObservableProperty]
-    private bool _runAsAdmin;
-
-    [ObservableProperty]
-    private bool _hidden;
-
+    /// <inheritdoc />
     public override void LoadFrom(ActionBase action)
     {
-        if (action is not ProcessAction process) return;
-
-        FilePath = process.FilePath;
-        Arguments = process.Arguments;
-        WorkingDirectory = process.WorkingDirectory;
-        RunAsAdmin = process.RunAsAdmin;
-        Hidden = process.Hidden;
-    }
-
-    public override ActionBase BuildAction()
-    {
-        return new ProcessAction
+        if (action is not ProcessAction process)
         {
-            FilePath = FilePath?.Trim() ?? string.Empty,
-            Arguments = Arguments,
-            WorkingDirectory = WorkingDirectory,
-            RunAsAdmin = RunAsAdmin,
-            Hidden = Hidden
-        };
+            return;
+        }
+
+        this.FilePath = process.FilePath;
+        this.Arguments = process.Arguments;
+        this.WorkingDirectory = process.WorkingDirectory;
+        this.RunAsAdmin = process.RunAsAdmin;
+        this.Hidden = process.Hidden;
     }
+
+    /// <inheritdoc />
+    public override ActionBase BuildAction() => new ProcessAction
+    {
+        FilePath = this.FilePath?.Trim() ?? string.Empty,
+        Arguments = this.Arguments,
+        WorkingDirectory = this.WorkingDirectory,
+        RunAsAdmin = this.RunAsAdmin,
+        Hidden = this.Hidden
+    };
 }

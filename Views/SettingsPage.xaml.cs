@@ -11,19 +11,32 @@ using WinRT.Interop;
 
 namespace HotKeyManager.Views;
 
+/// <summary>Settings page: appearance, startup, logging, driver, configuration file and updates.</summary>
 public sealed partial class SettingsPage : Page
 {
-    public SettingsViewModel ViewModel { get; } = new();
+    private const string CheckUpdatesText = "Nach Updates suchen";
 
+    /// <summary>Creates the page.</summary>
     public SettingsPage()
     {
         this.InitializeComponent();
     }
 
+    /// <summary>The settings view model.</summary>
+    public SettingsViewModel ViewModel { get; } = new();
+
+    /// <inheritdoc />
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        ViewModel.Load();
+        this.ViewModel.Load();
+    }
+
+    private static void AttachToMainWindow(object picker)
+    {
+        // WinUI 3 desktop apps must attach pickers to a window handle.
+        var hwnd = WindowNative.GetWindowHandle(App.Current.MainWindow);
+        InitializeWithWindow.Initialize(picker, hwnd);
     }
 
     private async void ExportConfig_Click(object sender, RoutedEventArgs e)
@@ -34,19 +47,19 @@ public sealed partial class SettingsPage : Page
             SuggestedFileName = "hotkey-config"
         };
         picker.FileTypeChoices.Add("JSON", new List<string> { ".json" });
-
-        var hwnd = WindowNative.GetWindowHandle(App.Current.MainWindow);
-        InitializeWithWindow.Initialize(picker, hwnd);
+        AttachToMainWindow(picker);
 
         var file = await picker.PickSaveFileAsync();
-        if (file != null)
+        if (file is null)
         {
-            var config = App.Current.ConfigurationService.Configuration;
-            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-            await FileIO.WriteTextAsync(file, json);
-
-            await ShowMessage("Export erfolgreich", "Die Konfiguration wurde exportiert.");
+            return;
         }
+
+        var config = App.Current.ConfigurationService.Configuration;
+        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+        await FileIO.WriteTextAsync(file, json);
+
+        await this.ShowMessageAsync("Export erfolgreich", "Die Konfiguration wurde exportiert.");
     }
 
     private async void ImportConfig_Click(object sender, RoutedEventArgs e)
@@ -56,36 +69,43 @@ public sealed partial class SettingsPage : Page
             SuggestedStartLocation = PickerLocationId.DocumentsLibrary
         };
         picker.FileTypeFilter.Add(".json");
-
-        var hwnd = WindowNative.GetWindowHandle(App.Current.MainWindow);
-        InitializeWithWindow.Initialize(picker, hwnd);
+        AttachToMainWindow(picker);
 
         var file = await picker.PickSingleFileAsync();
-        if (file != null)
+        if (file is null)
         {
-            try
-            {
-                var json = await FileIO.ReadTextAsync(file);
-                var config = JsonSerializer.Deserialize<AppConfiguration>(json);
-
-                if (config != null)
-                {
-                    LegacyActionMigration.WrapLegacyActions(config.Hotkeys);
-                    App.Current.ConfigurationService.Configuration = config;
-                    await App.Current.ConfigurationService.SaveAsync();
-                    App.Current.HotkeyManagerService.LoadHotkeys(config.Hotkeys);
-                    App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(config.Settings.LogLevel);
-                    ThemeService.Apply(config.Settings.Theme);
-                    ViewModel.Load();
-
-                    await ShowMessage("Import erfolgreich", $"{config.Hotkeys.Count} Hotkeys wurden importiert.");
-                }
-            }
-            catch (Exception ex)
-            {
-                await ShowMessage("Fehler beim Import", $"Die Datei konnte nicht gelesen werden: {ex.Message}");
-            }
+            return;
         }
+
+        try
+        {
+            var json = await FileIO.ReadTextAsync(file);
+            var config = JsonSerializer.Deserialize<AppConfiguration>(json);
+            if (config is null)
+            {
+                return;
+            }
+
+            await this.ApplyImportedConfigurationAsync(config);
+            await this.ShowMessageAsync("Import erfolgreich", $"{config.Hotkeys.Count} Hotkeys wurden importiert.");
+        }
+        catch (Exception ex)
+        {
+            await this.ShowMessageAsync(
+                "Fehler beim Import",
+                $"Die Datei konnte nicht gelesen werden: {ex.Message}");
+        }
+    }
+
+    private async Task ApplyImportedConfigurationAsync(AppConfiguration config)
+    {
+        LegacyActionMigration.WrapLegacyActions(config.Hotkeys);
+        App.Current.ConfigurationService.Configuration = config;
+        await App.Current.ConfigurationService.SaveAsync();
+        App.Current.HotkeyManagerService.LoadHotkeys(config.Hotkeys);
+        App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(config.Settings.LogLevel);
+        ThemeService.Apply(config.Settings.Theme);
+        this.ViewModel.Load();
     }
 
     private async void ResetConfig_Click(object sender, RoutedEventArgs e)
@@ -94,49 +114,55 @@ public sealed partial class SettingsPage : Page
         {
             XamlRoot = this.XamlRoot,
             Title = "Alle Daten löschen?",
-            Content = "Diese Aktion kann nicht rückgängig gemacht werden. Alle Hotkeys und Einstellungen werden gelöscht.",
+            Content = "Diese Aktion kann nicht rückgängig gemacht werden. "
+                + "Alle Hotkeys und Einstellungen werden gelöscht.",
             PrimaryButtonText = "Löschen",
             CloseButtonText = "Abbrechen",
             DefaultButton = ContentDialogButton.Close
         };
 
-        var result = await dialog.ShowAsync();
-
-        if (result == ContentDialogResult.Primary)
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
         {
-            await App.Current.ConfigurationService.ResetAsync();
-            App.Current.HotkeyManagerService.LoadHotkeys(new List<HotkeyDefinition>());
-            ThemeService.Apply(App.Current.ConfigurationService.Configuration.Settings.Theme);
-            ViewModel.Load();
-
-            await ShowMessage("Zurückgesetzt", "Alle Daten wurden gelöscht.");
+            return;
         }
+
+        await App.Current.ConfigurationService.ResetAsync();
+        App.Current.HotkeyManagerService.LoadHotkeys(new List<HotkeyDefinition>());
+        ThemeService.Apply(App.Current.ConfigurationService.Configuration.Settings.Theme);
+        this.ViewModel.Load();
+
+        await this.ShowMessageAsync("Zurückgesetzt", "Alle Daten wurden gelöscht.");
     }
 
     private async void InstallDriver_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.IsDriverInstalled)
+        if (!this.ViewModel.IsDriverInstalled)
         {
-            var confirmDialog = new ContentDialog
-            {
-                XamlRoot = this.XamlRoot,
-                Title = "Treiber deinstallieren?",
-                Content = "Der Interception-Treiber wird deinstalliert. Kernel-Mode Tastatur-Injektion ist danach nicht mehr verfügbar.",
-                PrimaryButtonText = "Deinstallieren",
-                CloseButtonText = "Abbrechen",
-                DefaultButton = ContentDialogButton.Close
-            };
-
-            if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary) return;
-
-            var (success, message) = await ViewModel.UninstallDriverAsync();
-            await ShowMessage(success ? "Deinstallation erfolgreich" : "Deinstallation fehlgeschlagen", message);
+            var (installed, installMessage) = await this.ViewModel.InstallDriverAsync();
+            var installTitle = installed ? "Installation erfolgreich" : "Installation fehlgeschlagen";
+            await this.ShowMessageAsync(installTitle, installMessage);
+            return;
         }
-        else
+
+        var confirmDialog = new ContentDialog
         {
-            var (success, message) = await ViewModel.InstallDriverAsync();
-            await ShowMessage(success ? "Installation erfolgreich" : "Installation fehlgeschlagen", message);
+            XamlRoot = this.XamlRoot,
+            Title = "Treiber deinstallieren?",
+            Content = "Der Interception-Treiber wird deinstalliert. "
+                + "Kernel-Mode Tastatur-Injektion ist danach nicht mehr verfügbar.",
+            PrimaryButtonText = "Deinstallieren",
+            CloseButtonText = "Abbrechen",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
         }
+
+        var (uninstalled, uninstallMessage) = await this.ViewModel.UninstallDriverAsync();
+        var uninstallTitle = uninstalled ? "Deinstallation erfolgreich" : "Deinstallation fehlgeschlagen";
+        await this.ShowMessageAsync(uninstallTitle, uninstallMessage);
     }
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
@@ -145,46 +171,48 @@ public sealed partial class SettingsPage : Page
 
         if (!updateService.IsSupported)
         {
-            await ShowMessage(
+            await this.ShowMessageAsync(
                 "Update-Check nicht verfügbar",
-                "Die App läuft aus einem Build-Verzeichnis. Der Update-Check funktioniert nur in der installierten Version.");
+                "Die App läuft aus einem Build-Verzeichnis. "
+                    + "Der Update-Check funktioniert nur in der installierten Version.");
             return;
         }
 
-        CheckUpdatesButton.IsEnabled = false;
-        CheckUpdatesButtonText.Text = "Prüfe…";
+        this.CheckUpdatesButton.IsEnabled = false;
+        this.CheckUpdatesButtonText.Text = "Prüfe…";
 
         var updateInfo = await updateService.CheckForUpdatesAsync();
 
-        CheckUpdatesButton.IsEnabled = true;
-        CheckUpdatesButtonText.Text = "Nach Updates suchen";
+        this.CheckUpdatesButton.IsEnabled = true;
+        this.CheckUpdatesButtonText.Text = CheckUpdatesText;
 
-        if (updateInfo == null)
+        if (updateInfo is null)
         {
-            await ShowMessage("Kein Update verfügbar", $"{ViewModel.VersionText} ist aktuell.");
+            await this.ShowMessageAsync("Kein Update verfügbar", $"{this.ViewModel.VersionText} ist aktuell.");
             return;
         }
 
-        var mainViewModel = (App.Current.MainWindow as MainWindow)?.ViewModel;
+        var mainViewModel = App.Current.MainWindow is MainWindow mainWindow ? mainWindow.ViewModel : null;
         mainViewModel?.ShowUpdateAvailable(updateInfo);
 
         var dialog = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
             Title = $"Version {updateInfo.TargetFullRelease.Version} verfügbar",
-            Content = "Das Update kann jetzt heruntergeladen und installiert werden. Die App startet danach automatisch neu.",
+            Content = "Das Update kann jetzt heruntergeladen und installiert werden. "
+                + "Die App startet danach automatisch neu.",
             PrimaryButtonText = "Jetzt aktualisieren",
             CloseButtonText = "Später",
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary && mainViewModel != null)
+        if ((await dialog.ShowAsync() == ContentDialogResult.Primary) && (mainViewModel is not null))
         {
             await mainViewModel.UpdateNowCommand.ExecuteAsync(null);
         }
     }
 
-    private async Task ShowMessage(string title, string message)
+    private async Task ShowMessageAsync(string title, string message)
     {
         var dialog = new ContentDialog
         {

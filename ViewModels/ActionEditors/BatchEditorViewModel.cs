@@ -3,41 +3,47 @@ using HotKeyManager.Models;
 
 namespace HotKeyManager.ViewModels.ActionEditors;
 
+/// <summary>Editor for the block that runs a batch command.</summary>
 public partial class BatchEditorViewModel : ActionEditorViewModelBase
 {
+    [ObservableProperty]
+    private string command = string.Empty;
+
+    [ObservableProperty]
+    private string workingDirectory = string.Empty;
+
+    [ObservableProperty]
+    private bool runHidden = true;
+
+    [ObservableProperty]
+    private bool waitForExit;
+
+    /// <inheritdoc />
     public override string DisplayName => "Batch-Befehl ausführen";
+
+    /// <inheritdoc />
     public override ActionType Type => ActionType.BatchCommand;
 
-    [ObservableProperty]
-    private string _command = string.Empty;
-
-    [ObservableProperty]
-    private string _workingDirectory = string.Empty;
-
-    [ObservableProperty]
-    private bool _runHidden = true;
-
-    [ObservableProperty]
-    private bool _waitForExit;
-
+    /// <inheritdoc />
     public override void LoadFrom(ActionBase action)
     {
-        if (action is not BatchAction batch) return;
-
-        Command = batch.Command;
-        WorkingDirectory = batch.WorkingDirectory;
-        RunHidden = batch.RunHidden;
-        WaitForExit = batch.WaitForExit;
-    }
-
-    public override ActionBase BuildAction()
-    {
-        return new BatchAction
+        if (action is not BatchAction batch)
         {
-            Command = Command,
-            WorkingDirectory = WorkingDirectory,
-            RunHidden = RunHidden,
-            WaitForExit = WaitForExit
-        };
+            return;
+        }
+
+        this.Command = batch.Command;
+        this.WorkingDirectory = batch.WorkingDirectory;
+        this.RunHidden = batch.RunHidden;
+        this.WaitForExit = batch.WaitForExit;
     }
+
+    /// <inheritdoc />
+    public override ActionBase BuildAction() => new BatchAction
+    {
+        Command = this.Command,
+        WorkingDirectory = this.WorkingDirectory,
+        RunHidden = this.RunHidden,
+        WaitForExit = this.WaitForExit
+    };
 }

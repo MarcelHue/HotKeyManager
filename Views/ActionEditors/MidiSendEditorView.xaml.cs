@@ -6,49 +6,52 @@ using WinRT.Interop;
 
 namespace HotKeyManager.Views.ActionEditors;
 
+/// <summary>Editor UI of the "MIDI senden" block, including the preset dialogs.</summary>
 public sealed partial class MidiSendEditorView : UserControl
 {
-    public MidiSendEditorViewModel? ViewModel => DataContext as MidiSendEditorViewModel;
-
+    /// <summary>Refreshes the x:Bind bindings whenever the block behind the view changes.</summary>
     public MidiSendEditorView()
     {
         this.InitializeComponent();
-        DataContextChanged += (s, e) => Bindings.Update();
+        this.DataContextChanged += (_, _) => this.Bindings.Update();
     }
+
+    public MidiSendEditorViewModel? ViewModel => this.DataContext as MidiSendEditorViewModel;
 
     private async void ImportPreset_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel == null || App.Current.MainWindow == null) return;
+        if (this.ViewModel is null || App.Current.MainWindow is null)
+        {
+            return;
+        }
 
         var picker = new FileOpenPicker();
         picker.FileTypeFilter.Add(".json");
-
-        var hwnd = WindowNative.GetWindowHandle(App.Current.MainWindow);
-        InitializeWithWindow.Initialize(picker, hwnd);
+        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(App.Current.MainWindow));
 
         var file = await picker.PickSingleFileAsync();
-        if (file == null) return;
-
-        var success = ViewModel.ImportPreset(file.Path);
-
-        var dialog = new ContentDialog
+        if (file is null)
         {
-            XamlRoot = this.XamlRoot,
-            Title = success ? "Preset importiert" : "Import fehlgeschlagen",
-            Content = success
-                ? "Das Preset steht jetzt in der Auswahl zur Verfügung."
-                : "Die Datei ist kein gültiges MIDI-Preset (erwartet wird eine JSON-Datei mit \"name\" und \"commands\").",
-            CloseButtonText = "OK"
-        };
-        await dialog.ShowAsync();
+            return;
+        }
+
+        var success = this.ViewModel.PresetPicker.Import(file.Path);
+        await this.ShowResultAsync(
+            success,
+            "Preset importiert",
+            "Das Preset steht jetzt in der Auswahl zur Verfügung.",
+            "Die Datei ist kein gültiges MIDI-Preset (erwartet wird eine JSON-Datei mit \"name\" und \"commands\").",
+            "Import fehlgeschlagen");
     }
 
     private async void SaveAsNewCommand_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel == null) return;
+        if (this.ViewModel is null)
+        {
+            return;
+        }
 
         var input = new TextBox { PlaceholderText = "z.B. Kanal 1 stumm umschalten" };
-
         var dialog = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
@@ -61,20 +64,23 @@ public sealed partial class MidiSendEditorView : UserControl
                     new TextBlock
                     {
                         Text = "Der Eintrag wird mit den aktuellen Werten gespeichert und als verifiziert markiert.",
-                        TextWrapping = TextWrapping.Wrap
+                        TextWrapping = TextWrapping.Wrap,
                     },
-                    input
-                }
+                    input,
+                },
             },
             PrimaryButtonText = "Speichern",
             CloseButtonText = "Abbrechen",
-            DefaultButton = ContentDialogButton.Primary
+            DefaultButton = ContentDialogButton.Primary,
         };
 
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
 
-        var saved = ViewModel.SaveAsNewCommand(input.Text);
-        await ShowResult(saved,
+        await this.ShowResultAsync(
+            this.ViewModel.SaveAsNewCommand(input.Text),
             "Eintrag gespeichert",
             "Der Befehl steht jetzt im Preset zur Verfügung.",
             "Der Eintrag konnte nicht gespeichert werden. Bitte gib einen Namen ein.");
@@ -82,10 +88,13 @@ public sealed partial class MidiSendEditorView : UserControl
 
     private async void UpdateCommand_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel == null) return;
+        if (this.ViewModel is null)
+        {
+            return;
+        }
 
-        var updated = ViewModel.UpdateSelectedCommand();
-        await ShowResult(updated,
+        await this.ShowResultAsync(
+            this.ViewModel.UpdateSelectedCommand(),
             "Eintrag aktualisiert",
             "Der Preset-Eintrag wurde mit den aktuellen Werten überschrieben und als verifiziert markiert.",
             "Der Eintrag konnte nicht aktualisiert werden.");
@@ -93,12 +102,15 @@ public sealed partial class MidiSendEditorView : UserControl
 
     private async void OpenPresetFile_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel == null) return;
-
-        if (!ViewModel.OpenPresetFile())
+        if (this.ViewModel is null)
         {
-            await ShowResult(false, "", "",
-                "Die Preset-Datei konnte nicht geöffnet werden.");
+            return;
+        }
+
+        if (!this.ViewModel.PresetPicker.OpenSelectedFile())
+        {
+            const string message = "Die Preset-Datei konnte nicht geöffnet werden.";
+            await this.ShowResultAsync(false, string.Empty, string.Empty, message);
             return;
         }
 
@@ -107,24 +119,31 @@ public sealed partial class MidiSendEditorView : UserControl
             XamlRoot = this.XamlRoot,
             Title = "Preset-Datei geöffnet",
             Content = "Die JSON-Datei wurde im Standardprogramm geöffnet. "
-                    + "Speichere dort deine Änderungen und klicke anschließend auf „Neu laden“.",
+                + "Speichere dort deine Änderungen und klicke anschließend auf „Neu laden“.",
             PrimaryButtonText = "Neu laden",
             CloseButtonText = "Später",
-            DefaultButton = ContentDialogButton.Primary
+            DefaultButton = ContentDialogButton.Primary,
         };
 
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-            ViewModel.ReloadFromDisk();
+        {
+            this.ViewModel.PresetPicker.ReloadFromDisk();
+        }
     }
 
-    private async Task ShowResult(bool success, string successTitle, string successMessage, string errorMessage)
+    private async Task ShowResultAsync(
+        bool success,
+        string successTitle,
+        string successMessage,
+        string errorMessage,
+        string errorTitle = "Fehlgeschlagen")
     {
         var dialog = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
-            Title = success ? successTitle : "Fehlgeschlagen",
+            Title = success ? successTitle : errorTitle,
             Content = success ? successMessage : errorMessage,
-            CloseButtonText = "OK"
+            CloseButtonText = "OK",
         };
         await dialog.ShowAsync();
     }

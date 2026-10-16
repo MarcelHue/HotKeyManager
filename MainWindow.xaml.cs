@@ -11,52 +11,76 @@ using Microsoft.Win32;
 
 namespace HotKeyManager;
 
+/// <summary>Main window with the navigation pane, status footer and error info bar.</summary>
 public sealed partial class MainWindow : Window
 {
-    private DispatcherTimer? _statusTimer;
-    private DispatcherTimer? _hookReinstallTimer;
-    private DispatcherTimer? _infoDismissTimer;
+    private static readonly TimeSpan StatusRefreshInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan HookReinstallInterval = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan InfoBarDismissDelay = TimeSpan.FromSeconds(5);
 
-    public MainViewModel ViewModel { get; } = new();
+    private DispatcherTimer? statusTimer;
+    private DispatcherTimer? hookReinstallTimer;
+    private DispatcherTimer? infoDismissTimer;
 
+    /// <summary>Creates the window, shows the hotkey list and starts the background timers.</summary>
     public MainWindow()
     {
         this.InitializeComponent();
-        SetupWindow();
+        this.SetupWindow();
 
-        ContentFrame.Navigate(typeof(HotkeyListPage));
-        NavView.SelectedItem = HotkeysNavItem;
+        this.ContentFrame.Navigate(typeof(HotkeyListPage));
+        this.NavView.SelectedItem = this.HotkeysNavItem;
 
-        StartStatusTimer();
-        StartHookReinstallTimer();
-        SubscribeToSystemEvents();
-        SubscribeToLogErrors();
+        this.StartStatusTimer();
+        this.StartHookReinstallTimer();
+        this.SubscribeToSystemEvents();
+        this.SubscribeToLogErrors();
 
-        ViewModel.StartUpdateChecks();
+        this.ViewModel.StartUpdateChecks();
     }
+
+    /// <summary>View model for the status footer and update banner.</summary>
+    public MainViewModel ViewModel { get; } = new();
+
+    /// <summary>Shows the window again after it was hidden to the tray.</summary>
+    public void ShowWindow()
+    {
+        this.AppWindow?.Show();
+        this.Activate();
+    }
+
+    /// <summary>Refreshes the hook and driver status in the footer.</summary>
+    public void UpdateStatusDisplay() => this.ViewModel.RefreshStatus();
 
     private void SetupWindow()
     {
-        SystemBackdrop = new MicaBackdrop();
+        this.SystemBackdrop = new MicaBackdrop();
 
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
+        this.ExtendsContentIntoTitleBar = true;
+        this.SetTitleBar(this.AppTitleBar);
 
-        // TitleBar-Button-Farben dem effektiven Theme nachfuehren (auch bei System-Theme-Wechsel)
-        ThemeService.UpdateTitleBarButtons(this, RootGrid.ActualTheme);
-        RootGrid.ActualThemeChanged += (s, e) => ThemeService.UpdateTitleBarButtons(this, RootGrid.ActualTheme);
+        // The caption buttons do not follow the theme by themselves, also not on a system theme change.
+        ThemeService.UpdateTitleBarButtons(this, this.RootGrid.ActualTheme);
+        this.RootGrid.ActualThemeChanged +=
+            (_, _) => ThemeService.UpdateTitleBarButtons(this, this.RootGrid.ActualTheme);
 
-        if (AppWindow != null)
+        if (this.AppWindow is not null)
         {
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(GlobalConst.STARTUP_WINDOW_WIDTH, GlobalConst.STARTUP_WINDOW_HEIGHT));
-
-            var displayArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-            var centerX = (displayArea.WorkArea.Width - GlobalConst.STARTUP_WINDOW_WIDTH) / 2;
-            var centerY = (displayArea.WorkArea.Height - GlobalConst.STARTUP_WINDOW_HEIGHT) / 2;
-            AppWindow.Move(new Windows.Graphics.PointInt32(centerX, centerY));
+            this.CenterOnScreen(this.AppWindow);
         }
 
-        this.Closed += MainWindow_Closed;
+        this.Closed += this.MainWindow_Closed;
+    }
+
+    private void CenterOnScreen(AppWindow appWindow)
+    {
+        var size = new Windows.Graphics.SizeInt32(GlobalConst.StartupWindowWidth, GlobalConst.StartupWindowHeight);
+        appWindow.Resize(size);
+
+        var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
+        var centerX = (displayArea.WorkArea.Width - GlobalConst.StartupWindowWidth) / 2;
+        var centerY = (displayArea.WorkArea.Height - GlobalConst.StartupWindowHeight) / 2;
+        appWindow.Move(new Windows.Graphics.PointInt32(centerX, centerY));
     }
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
@@ -65,38 +89,30 @@ public sealed partial class MainWindow : Window
         if (config.Settings.MinimizeToTray)
         {
             args.Handled = true;
-            AppWindow?.Hide();
+            this.AppWindow?.Hide();
         }
     }
 
-    public void ShowWindow()
-    {
-        AppWindow?.Show();
-        this.Activate();
-    }
-
-    public void UpdateStatusDisplay() => ViewModel.RefreshStatus();
-
     private void StartStatusTimer()
     {
-        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        _statusTimer.Tick += (_, _) => ViewModel.RefreshStatus();
-        _statusTimer.Start();
+        this.statusTimer = new DispatcherTimer { Interval = StatusRefreshInterval };
+        this.statusTimer.Tick += (_, _) => this.ViewModel.RefreshStatus();
+        this.statusTimer.Start();
     }
 
     private void StartHookReinstallTimer()
     {
-        // Windows entfernt Low-Level-Hooks stillschweigend (Timeout, Sleep/Wake, Lock) —
-        // regelmaessiges Reinstall haelt den Hook zuverlaessig am Leben.
-        _hookReinstallTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
-        _hookReinstallTimer.Tick += (_, _) => App.Current.KeyboardHookService.Reinstall();
-        _hookReinstallTimer.Start();
+        // Windows silently removes low-level hooks (timeout, sleep/wake, lock);
+        // reinstalling regularly keeps the hook alive.
+        this.hookReinstallTimer = new DispatcherTimer { Interval = HookReinstallInterval };
+        this.hookReinstallTimer.Tick += (_, _) => App.Current.KeyboardHookService.Reinstall();
+        this.hookReinstallTimer.Start();
     }
 
     private void SubscribeToSystemEvents()
     {
-        SystemEvents.SessionSwitch += OnSessionSwitch;
-        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        SystemEvents.SessionSwitch += this.OnSessionSwitch;
+        SystemEvents.PowerModeChanged += this.OnPowerModeChanged;
     }
 
     private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
@@ -104,7 +120,7 @@ public sealed partial class MainWindow : Window
         if (e.Reason == SessionSwitchReason.SessionUnlock)
         {
             App.Current.LogService.Info("Session entsperrt - Hook wird reinstalliert");
-            DispatcherQueue.TryEnqueue(() => App.Current.KeyboardHookService.Reinstall());
+            this.DispatcherQueue.TryEnqueue(() => App.Current.KeyboardHookService.Reinstall());
         }
     }
 
@@ -113,65 +129,70 @@ public sealed partial class MainWindow : Window
         if (e.Mode == PowerModes.Resume)
         {
             App.Current.LogService.Info("System aus Standby aufgewacht - Hook wird reinstalliert");
-            DispatcherQueue.TryEnqueue(() => App.Current.KeyboardHookService.Reinstall());
+            this.DispatcherQueue.TryEnqueue(() => App.Current.KeyboardHookService.Reinstall());
         }
     }
 
-    private void SubscribeToLogErrors()
-    {
-        App.Current.LogService.ErrorOccurred += OnLogError;
-    }
+    private void SubscribeToLogErrors() => App.Current.LogService.ErrorOccurred += this.OnLogError;
 
-    private void OnLogError(object? sender, LogMessageEventArgs e)
+    // The logger raises this from any thread.
+    private void OnLogError(object? sender, LogMessageEventArgs e) =>
+        this.DispatcherQueue.TryEnqueue(() => this.ShowLogMessage(e));
+
+    private void ShowLogMessage(LogMessageEventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() =>
+        this.ErrorInfoBar.Severity = e.Level == LogLevel.Error ? InfoBarSeverity.Error : InfoBarSeverity.Warning;
+        this.ErrorInfoBar.Message = e.Message;
+        this.ErrorInfoBar.IsOpen = true;
+
+        this.infoDismissTimer?.Stop();
+        this.infoDismissTimer = new DispatcherTimer { Interval = InfoBarDismissDelay };
+        this.infoDismissTimer.Tick += (_, _) =>
         {
-            ErrorInfoBar.Severity = e.Level == LogLevel.Error
-                ? InfoBarSeverity.Error
-                : InfoBarSeverity.Warning;
-            ErrorInfoBar.Message = e.Message;
-            ErrorInfoBar.IsOpen = true;
-
-            _infoDismissTimer?.Stop();
-            _infoDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-            _infoDismissTimer.Tick += (_, _) =>
-            {
-                ErrorInfoBar.IsOpen = false;
-                _infoDismissTimer.Stop();
-            };
-            _infoDismissTimer.Start();
-        });
+            this.ErrorInfoBar.IsOpen = false;
+            this.infoDismissTimer.Stop();
+        };
+        this.infoDismissTimer.Start();
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.IsSettingsSelected)
         {
-            if (ContentFrame.CurrentSourcePageType != typeof(SettingsPage))
-                ContentFrame.Navigate(typeof(SettingsPage));
+            if (this.ContentFrame.CurrentSourcePageType != typeof(SettingsPage))
+            {
+                this.ContentFrame.Navigate(typeof(SettingsPage));
+            }
         }
         else if (args.SelectedItem is NavigationViewItem { Tag: "hotkeys" })
         {
-            if (ContentFrame.CurrentSourcePageType != typeof(HotkeyListPage))
-                ContentFrame.Navigate(typeof(HotkeyListPage));
+            if (this.ContentFrame.CurrentSourcePageType != typeof(HotkeyListPage))
+            {
+                this.ContentFrame.Navigate(typeof(HotkeyListPage));
+            }
         }
     }
 
     private void NavView_BackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
     {
-        if (ContentFrame.CanGoBack)
-            ContentFrame.GoBack();
+        if (this.ContentFrame.CanGoBack)
+        {
+            this.ContentFrame.GoBack();
+        }
     }
 
     private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
     {
-        NavView.IsBackEnabled = ContentFrame.CanGoBack;
+        this.NavView.IsBackEnabled = this.ContentFrame.CanGoBack;
 
-        // NavigationView-Auswahl mit der tatsaechlichen Seite synchron halten
-        // (z.B. nach GoBack aus der Editor-Seite)
+        // Keep the selection in sync with the actual page, e.g. after GoBack from the editor page.
         if (e.SourcePageType == typeof(SettingsPage))
-            NavView.SelectedItem = NavView.SettingsItem;
+        {
+            this.NavView.SelectedItem = this.NavView.SettingsItem;
+        }
         else if (e.SourcePageType == typeof(HotkeyListPage))
-            NavView.SelectedItem = HotkeysNavItem;
+        {
+            this.NavView.SelectedItem = this.HotkeysNavItem;
+        }
     }
 }

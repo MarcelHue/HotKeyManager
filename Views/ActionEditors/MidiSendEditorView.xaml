@@ -10,7 +10,6 @@
                   ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}"
                   SelectedIndex="{x:Bind ViewModel.DeviceIndex, Mode=TwoWay}" />
 
-        <!-- Preset-Auswahl -->
         <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                 BorderThickness="1"
@@ -26,9 +25,9 @@
                               Header="Preset (dokumentierte Befehle)"
                               HorizontalAlignment="Stretch"
                               PlaceholderText="Kein Preset"
-                              ItemsSource="{x:Bind ViewModel.Presets, Mode=OneWay}"
+                              ItemsSource="{x:Bind ViewModel.PresetPicker.Presets, Mode=OneWay}"
                               DisplayMemberPath="Name"
-                              SelectedIndex="{x:Bind ViewModel.PresetIndex, Mode=TwoWay}" />
+                              SelectedIndex="{x:Bind ViewModel.PresetPicker.PresetIndex, Mode=TwoWay}" />
                     <Button Grid.Column="1"
                             VerticalAlignment="Bottom"
                             Click="ImportPreset_Click"
@@ -43,42 +42,48 @@
                 <ComboBox Header="Befehl"
                           HorizontalAlignment="Stretch"
                           PlaceholderText="Befehl wählen…"
-                          ItemsSource="{x:Bind ViewModel.PresetCommands, Mode=OneWay}"
+                          ItemsSource="{x:Bind ViewModel.PresetPicker.PresetCommands, Mode=OneWay}"
                           DisplayMemberPath="DisplayName"
-                          SelectedIndex="{x:Bind ViewModel.CommandIndex, Mode=TwoWay}" />
+                          SelectedIndex="{x:Bind ViewModel.PresetPicker.CommandIndex, Mode=TwoWay}" />
 
-                <TextBlock Text="{x:Bind ViewModel.CommandHint, Mode=OneWay}"
+                <TextBlock Text="{x:Bind ViewModel.PresetPicker.CommandHint, Mode=OneWay}"
                            FontSize="12"
                            TextWrapping="Wrap"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Visibility="{x:Bind ViewModel.HasCommandHint, Mode=OneWay}" />
+                           Visibility="{x:Bind ViewModel.PresetPicker.HasCommandHint, Mode=OneWay}" />
 
-                <TextBlock Text="{x:Bind ViewModel.PresetNotes, Mode=OneWay}"
+                <TextBlock Text="{x:Bind ViewModel.PresetPicker.PresetNotes, Mode=OneWay}"
                            FontSize="12"
                            TextWrapping="Wrap"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Visibility="{x:Bind ViewModel.HasPresetNotes, Mode=OneWay}" />
+                           Visibility="{x:Bind ViewModel.PresetPicker.HasPresetNotes, Mode=OneWay}" />
 
-                <!-- Eigene Werte dauerhaft ins Preset übernehmen -->
+                <!-- Working values found by trial go back into the preset file, so they are kept. -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Click="SaveAsNewCommand_Click"
-                            ToolTipService.ToolTip="Aktuelle Einstellungen als neuen, verifizierten Preset-Eintrag speichern">
+                    <Button Click="SaveAsNewCommand_Click">
+                        <ToolTipService.ToolTip>
+                            Aktuelle Einstellungen als neuen, verifizierten Preset-Eintrag speichern
+                        </ToolTipService.ToolTip>
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE710;" FontSize="12" />
                             <TextBlock Text="Als Preset-Eintrag speichern" />
                         </StackPanel>
                     </Button>
                     <Button Click="UpdateCommand_Click"
-                            IsEnabled="{x:Bind ViewModel.HasSelectedCommand, Mode=OneWay}"
-                            ToolTipService.ToolTip="Gewählten Preset-Eintrag mit diesen Werten überschreiben und als verifiziert markieren">
+                            IsEnabled="{x:Bind ViewModel.PresetPicker.HasSelectedCommand, Mode=OneWay}">
+                        <ToolTipService.ToolTip>
+                            Gewählten Preset-Eintrag mit diesen Werten überschreiben und als verifiziert markieren
+                        </ToolTipService.ToolTip>
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE73E;" FontSize="12" />
                             <TextBlock Text="Eintrag aktualisieren" />
                         </StackPanel>
                     </Button>
                     <Button Click="OpenPresetFile_Click"
-                            IsEnabled="{x:Bind ViewModel.HasSelectedPreset, Mode=OneWay}"
-                            ToolTipService.ToolTip="Preset-JSON im Standardprogramm öffnen und von Hand bearbeiten">
+                            IsEnabled="{x:Bind ViewModel.PresetPicker.HasSelectedPreset, Mode=OneWay}">
+                        <ToolTipService.ToolTip>
+                            Preset-JSON im Standardprogramm öffnen und von Hand bearbeiten
+                        </ToolTipService.ToolTip>
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE8E5;" FontSize="12" />
                             <TextBlock Text="JSON öffnen" />
@@ -118,7 +123,6 @@
                        SpinButtonPlacementMode="Inline" />
         </Grid>
 
-        <!-- Umschalt-Modus -->
         <StackPanel Spacing="8">
             <CheckBox Content="Bei jedem Auslösen zwischen zwei Werten umschalten"
                       IsChecked="{x:Bind ViewModel.ToggleValues, Mode=TwoWay}" />
@@ -129,10 +133,13 @@
                        HorizontalAlignment="Left"
                        MinWidth="200"
                        IsEnabled="{x:Bind ViewModel.ToggleValues, Mode=OneWay}" />
-            <TextBlock Text="Sinnvoll für Geräte mit getrennten An/Aus-Befehlen (z.B. RØDECaster: CC 27 mit Wert 1 = stumm, Wert 0 = laut). Der zuletzt gesendete Wert wird gespeichert, damit ein Tastendruck zuverlässig umschaltet."
-                       FontSize="12"
+            <TextBlock FontSize="12"
                        TextWrapping="Wrap"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                Sinnvoll für Geräte mit getrennten An/Aus-Befehlen (z.B. RØDECaster: CC 27 mit Wert 1 = stumm,
+                Wert 0 = laut). Der zuletzt gesendete Wert wird gespeichert, damit ein Tastendruck zuverlässig
+                umschaltet.
+            </TextBlock>
         </StackPanel>
 
         <Grid ColumnSpacing="12">
@@ -159,8 +166,13 @@
 
         <InfoBar Severity="Informational"
                  Title="Hinweis"
-                 Message="Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Mit „Test senden“ probierst du einen Befehl direkt aus; funktionierende Werte kannst du oben dauerhaft ins Preset übernehmen."
                  IsOpen="True"
-                 IsClosable="False" />
+                 IsClosable="False">
+            <InfoBar.Message>
+                Womit ein Gerät auf eingehende MIDI-Befehle reagiert, hängt vom Gerät ab. Mit „Test senden“
+                probierst du einen Befehl direkt aus; funktionierende Werte kannst du oben dauerhaft ins Preset
+                übernehmen.
+            </InfoBar.Message>
+        </InfoBar>
     </StackPanel>
 </UserControl>

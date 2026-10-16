@@ -29,8 +29,12 @@
 
         <InfoBar Severity="Informational"
                  Title="Hinweis"
-                 Message="Der Text wird als simulierte Tastatureingabe getippt. Zeilenumbrüche werden als Enter gesendet, Umlaute und Sonderzeichen funktionieren (Unicode)."
                  IsOpen="True"
-                 IsClosable="False" />
+                 IsClosable="False">
+            <InfoBar.Message>
+                Der Text wird als simulierte Tastatureingabe getippt. Zeilenumbrüche werden als Enter gesendet,
+                Umlaute und Sonderzeichen funktionieren (Unicode).
+            </InfoBar.Message>
+        </InfoBar>
     </StackPanel>
 </UserControl>

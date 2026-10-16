@@ -4,210 +4,234 @@ using System.Text.Json.Serialization;
 
 namespace HotKeyManager.Models;
 
-/// <summary>
-/// Modus fuer Fenster-Targeting bei Hotkeys.
-/// </summary>
-public enum WindowTargetMode
-{
-    /// <summary>Keine Fensterbeschraenkung - Hotkey funktioniert immer.</summary>
-    None,
-    /// <summary>Hotkey nur ausloesen wenn das Zielfenster aktiv ist.</summary>
-    OnlyWhenActive,
-    /// <summary>Tasten an Hintergrund-Fenster senden (auch wenn nicht aktiv).</summary>
-    SendToBackground
-}
-
+/// <summary>A hotkey: its triggers (key, MIDI, DisplayPad), its action and its list-row state.</summary>
 public class HotkeyDefinition : INotifyPropertyChanged
 {
+    private string name = string.Empty;
+    private string group = string.Empty;
+    private int virtualKeyCode;
+    private ModifierKeys modifiers = ModifierKeys.None;
+    private bool isEnabled = true;
+    private MidiTrigger? midiTrigger;
+    private PadTrigger? padTrigger;
+    private bool isEditingName;
+    private string editingName = string.Empty;
+    private string? captureHint;
+
+    /// <summary>Raised when a bound property changes.</summary>
     public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Notify([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    /// <summary>Meldet, dass sich die Ausloeser-Anzeige geaendert hat.</summary>
-    private void NotifyTriggerDisplay()
-    {
-        Notify(nameof(KeyDisplayText));
-        Notify(nameof(TriggerDisplayText));
-    }
 
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    private string _name = string.Empty;
     public string Name
     {
-        get => _name;
+        get => this.name;
         set
         {
-            if (_name == value) return;
-            _name = value;
-            Notify();
+            if (this.name == value)
+            {
+                return;
+            }
+
+            this.name = value;
+            this.Notify();
         }
     }
 
-    /// <summary>Ordner/Gruppe fuer die Listenansicht. Leer = "Ohne Ordner".</summary>
-    private string _group = string.Empty;
+    /// <summary>Folder in the list view; empty means "Ohne Ordner".</summary>
     public string Group
     {
-        get => _group;
+        get => this.group;
         set
         {
-            if (_group == value) return;
-            _group = value;
-            Notify();
+            if (this.group == value)
+            {
+                return;
+            }
+
+            this.group = value;
+            this.Notify();
         }
     }
 
-    private int _virtualKeyCode;
     public int VirtualKeyCode
     {
-        get => _virtualKeyCode;
+        get => this.virtualKeyCode;
         set
         {
-            if (_virtualKeyCode == value) return;
-            _virtualKeyCode = value;
-            NotifyTriggerDisplay();
+            if (this.virtualKeyCode == value)
+            {
+                return;
+            }
+
+            this.virtualKeyCode = value;
+            this.NotifyTriggerDisplay();
         }
     }
 
-    private ModifierKeys _modifiers = ModifierKeys.None;
     public ModifierKeys Modifiers
     {
-        get => _modifiers;
+        get => this.modifiers;
         set
         {
-            if (_modifiers == value) return;
-            _modifiers = value;
-            NotifyTriggerDisplay();
+            if (this.modifiers == value)
+            {
+                return;
+            }
+
+            this.modifiers = value;
+            this.NotifyTriggerDisplay();
         }
     }
 
-    private bool _isEnabled = true;
     public bool IsEnabled
     {
-        get => _isEnabled;
+        get => this.isEnabled;
         set
         {
-            if (_isEnabled == value) return;
-            _isEnabled = value;
-            Notify();
+            if (this.isEnabled == value)
+            {
+                return;
+            }
+
+            this.isEnabled = value;
+            this.Notify();
         }
     }
 
     public ActionBase? Action { get; set; }
 
-    /// <summary>Optionaler MIDI-Ausloeser (z.B. Rodecaster-Pad). Null = nur Tastatur.</summary>
-    private MidiTrigger? _midiTrigger;
+    /// <summary>Optional MIDI trigger (e.g. a Rodecaster pad); null means keyboard only.</summary>
     public MidiTrigger? MidiTrigger
     {
-        get => _midiTrigger;
+        get => this.midiTrigger;
         set
         {
-            _midiTrigger = value;
-            NotifyTriggerDisplay();
+            this.midiTrigger = value;
+            this.NotifyTriggerDisplay();
         }
     }
 
-    /// <summary>Fenster-Targeting Modus.</summary>
+    /// <summary>Optional DisplayPad trigger via PadDeck; null means no pad key.</summary>
+    public PadTrigger? PadTrigger
+    {
+        get => this.padTrigger;
+        set
+        {
+            this.padTrigger = value;
+            this.NotifyTriggerDisplay();
+        }
+    }
+
     public WindowTargetMode WindowMode { get; set; } = WindowTargetMode.None;
-    /// <summary>Zielprozess-Name (z.B. "notepad", "chrome"). Null = beliebig.</summary>
+
+    /// <summary>Target process name (e.g. "notepad", "chrome"); null means any.</summary>
     public string? TargetProcessName { get; set; }
-    /// <summary>Zielfenster-Titel mit Wildcard-Support (z.B. "*Editor*"). Null = beliebig.</summary>
+
+    /// <summary>Target window title with wildcards (e.g. "*Editor*"); null means any.</summary>
     public string? TargetWindowTitle { get; set; }
 
-    #region UI-Zustand (nicht persistiert)
+    // The list-row state below lives on the model on purpose: the list binds directly to
+    // HotkeyDefinition, and each of these states always belongs to exactly one row. Not persisted.
 
-    // Bewusst am Model statt in einem eigenen Zeilen-ViewModel: die Liste bindet
-    // direkt auf HotkeyDefinition, und diese Zustaende gelten immer genau einer Zeile.
-
-    private bool _isEditingName;
     [JsonIgnore]
     public bool IsEditingName
     {
-        get => _isEditingName;
+        get => this.isEditingName;
         set
         {
-            if (_isEditingName == value) return;
-            _isEditingName = value;
-            Notify();
-            Notify(nameof(IsNotEditingName));
+            if (this.isEditingName == value)
+            {
+                return;
+            }
+
+            this.isEditingName = value;
+            this.Notify();
+            this.Notify(nameof(this.IsNotEditingName));
         }
     }
 
     [JsonIgnore]
-    public bool IsNotEditingName => !_isEditingName;
+    public bool IsNotEditingName => !this.isEditingName;
 
-    /// <summary>Puffer fuer das Inline-Umbenennen (wird erst bei Enter uebernommen).</summary>
-    private string _editingName = string.Empty;
+    /// <summary>Buffer for inline renaming; applied only on Enter.</summary>
     [JsonIgnore]
     public string EditingName
     {
-        get => _editingName;
+        get => this.editingName;
         set
         {
-            if (_editingName == value) return;
-            _editingName = value;
-            Notify();
+            if (this.editingName == value)
+            {
+                return;
+            }
+
+            this.editingName = value;
+            this.Notify();
         }
     }
 
-    /// <summary>Text, der waehrend einer laufenden Erfassung im Ausloeser-Feld steht.</summary>
-    private string? _captureHint;
+    /// <summary>Text shown in the trigger field while a capture is running.</summary>
     [JsonIgnore]
     public string? CaptureHint
     {
-        get => _captureHint;
+        get => this.captureHint;
         set
         {
-            if (_captureHint == value) return;
-            _captureHint = value;
-            Notify();
-            Notify(nameof(TriggerDisplayText));
+            if (this.captureHint == value)
+            {
+                return;
+            }
+
+            this.captureHint = value;
+            this.Notify();
+            this.Notify(nameof(this.TriggerDisplayText));
         }
     }
-
-    #endregion
 
     [JsonIgnore]
-    public string KeyDisplayText
-    {
-        get
-        {
-            if (VirtualKeyCode == 0)
-                return string.Empty;
+    public string KeyDisplayText => this.VirtualKeyCode == 0
+        ? string.Empty
+        : Helpers.KeyHelper.FormatCombination(this.VirtualKeyCode, this.Modifiers);
 
-            var parts = new List<string>();
-
-            if (Modifiers.HasFlag(ModifierKeys.Control))
-                parts.Add("Ctrl");
-            if (Modifiers.HasFlag(ModifierKeys.Alt))
-                parts.Add("Alt");
-            if (Modifiers.HasFlag(ModifierKeys.Shift))
-                parts.Add("Shift");
-            if (Modifiers.HasFlag(ModifierKeys.Windows))
-                parts.Add("Win");
-
-            parts.Add(Helpers.KeyHelper.GetKeyName(VirtualKeyCode));
-
-            return string.Join(" + ", parts);
-        }
-    }
-
-    /// <summary>Kombinierte Anzeige aller Ausloeser (Taste und/oder MIDI) fuer die Liste.</summary>
+    /// <summary>All triggers (key, MIDI, pad) combined for the list.</summary>
     [JsonIgnore]
     public string TriggerDisplayText
     {
         get
         {
-            if (!string.IsNullOrEmpty(CaptureHint))
-                return CaptureHint;
+            if (!string.IsNullOrEmpty(this.CaptureHint))
+            {
+                return this.CaptureHint;
+            }
 
             var parts = new List<string>();
-            if (VirtualKeyCode != 0)
-                parts.Add(KeyDisplayText);
-            if (MidiTrigger != null)
-                parts.Add($"MIDI: {MidiTrigger.DisplayText}");
+            if (this.VirtualKeyCode != 0)
+            {
+                parts.Add(this.KeyDisplayText);
+            }
+
+            if (this.MidiTrigger is not null)
+            {
+                parts.Add($"MIDI: {this.MidiTrigger.DisplayText}");
+            }
+
+            if (this.PadTrigger is not null)
+            {
+                parts.Add($"Pad: {this.PadTrigger.DisplayText}");
+            }
+
             return parts.Count > 0 ? string.Join("  ·  ", parts) : "Kein Auslöser";
         }
+    }
+
+    private void Notify([CallerMemberName] string? propertyName = null) =>
+        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    /// <summary>Tells the list that the combined trigger text changed.</summary>
+    private void NotifyTriggerDisplay()
+    {
+        this.Notify(nameof(this.KeyDisplayText));
+        this.Notify(nameof(this.TriggerDisplayText));
     }
 }

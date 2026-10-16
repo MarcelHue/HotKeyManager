@@ -1,5 +1,6 @@
 namespace HotKeyManager.Models;
 
+/// <summary>Modifier keys of a hotkey; the values are bit flags persisted in config.json.</summary>
 [Flags]
 public enum ModifierKeys
 {

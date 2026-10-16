@@ -10,7 +10,7 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!-- Zeilen-Vorlage: Griff, Auslöser, Name/Aktion, Buttons -->
+        <!-- Row template: grip, trigger, name/action, buttons. -->
         <DataTemplate x:Key="HotkeyItemTemplate" x:DataType="models:HotkeyDefinition">
             <Border Style="{StaticResource CardStyle}">
                 <Grid ColumnSpacing="12">
@@ -21,7 +21,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Griff: ziehen zum Sortieren, klicken für das Verschieben-Menü -->
+                    <!-- Grip: drag to reorder, click for the move menu (reordering without dragging). -->
                     <Button Grid.Column="0"
                             Background="Transparent"
                             BorderThickness="0"
@@ -39,16 +39,23 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <Ellipse Grid.Row="0" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                            <Ellipse Grid.Row="0" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                            <Ellipse Grid.Row="1" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                            <Ellipse Grid.Row="1" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                            <Ellipse Grid.Row="2" Grid.Column="0" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                            <Ellipse Grid.Row="2" Grid.Column="1" Width="3" Height="3" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Grid.Resources>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Width" Value="3" />
+                                    <Setter Property="Height" Value="3" />
+                                    <Setter Property="Fill" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                                </Style>
+                            </Grid.Resources>
+                            <Ellipse Grid.Row="0" Grid.Column="0" />
+                            <Ellipse Grid.Row="0" Grid.Column="1" />
+                            <Ellipse Grid.Row="1" Grid.Column="0" />
+                            <Ellipse Grid.Row="1" Grid.Column="1" />
+                            <Ellipse Grid.Row="2" Grid.Column="0" />
+                            <Ellipse Grid.Row="2" Grid.Column="1" />
                         </Grid>
                     </Button>
 
-                    <!-- Auslöser-Badge: Klick öffnet die Erfassungs-Optionen -->
+                    <!-- Trigger badge: a click opens the capture options. -->
                     <Button Grid.Column="1"
                             Padding="0"
                             Background="Transparent"
@@ -86,9 +93,8 @@
                         </Button.Flyout>
                     </Button>
 
-                    <!-- Name und Aktionsbeschreibung -->
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="4">
-                        <!-- Stift klebt direkt am Namen (Auto-Breite), nicht am Zeilenrand -->
+                        <!-- The pencil sticks to the name (auto width), not to the row edge. -->
                         <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Text="{x:Bind Name, Mode=OneWay}"
                                        Style="{ThemeResource BodyStrongTextBlockStyle}"
@@ -132,7 +138,6 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Aktionen -->
                     <StackPanel Grid.Column="3"
                                 Orientation="Horizontal"
                                 Spacing="4"
@@ -191,7 +196,6 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -225,7 +229,6 @@
             </SplitButton>
         </Grid>
 
-        <!-- Suche -->
         <AutoSuggestBox Grid.Row="1"
                         x:Name="SearchBox"
                         QueryIcon="Find"
@@ -235,7 +238,6 @@
                         TextChanged="SearchBox_TextChanged"
                         Margin="0,0,0,16" />
 
-        <!-- Ordner + Liste -->
         <Grid Grid.Row="2">
             <StackPanel Visibility="{x:Bind ViewModel.IsEmptyStateVisible, Mode=OneWay}"
                         VerticalAlignment="Center"

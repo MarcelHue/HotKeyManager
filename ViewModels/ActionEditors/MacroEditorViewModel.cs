@@ -6,280 +6,107 @@ using HotKeyManager.Models;
 namespace HotKeyManager.ViewModels.ActionEditors;
 
 /// <summary>
-/// Baustein-Editor fuer Makros mit zwei Modi:
-///
-/// Einfach (Standard): feste Felder "Taste davor / Text / Taste danach" — deckt den
-/// haeufigsten Fall ohne Baustein-Verwaltung ab (z.B. Ctrl+F, dann Suchtext tippen).
-///
-/// Erweitert: die volle, sortierbare Baustein-Liste mit allen Aktionstypen.
+/// Block editor for macros with two modes: simple (<see cref="SimpleMacroForm"/>: key before,
+/// text, key after) and advanced (the full, sortable block list with all action types).
 /// </summary>
 public partial class MacroEditorViewModel : ActionEditorViewModelBase
 {
-    private bool _isSwitchingMode;
+    /// <summary>Macros with fewer blocks open fully expanded.</summary>
+    private const int ExpandAllBelowStepCount = 3;
+    private const int MaxStepDelayMs = 60_000;
 
-    public override string DisplayName => "Makro (Bausteine)";
-    public override ActionType Type => ActionType.Macro;
-
-    /// <summary>Die Bausteine — jeweils das Editor-ViewModel des zugehoerigen Aktionstyps.</summary>
-    public ObservableCollection<ActionEditorViewModelBase> Steps { get; } = new();
+    private bool isSwitchingMode;
 
     [ObservableProperty]
-    private double _stepDelayMs;
+    private double stepDelayMs;
 
     [ObservableProperty]
-    private bool _isEmptyHintVisible = true;
-
-    #region Einfach-Modus
+    private bool isEmptyHintVisible = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsAdvancedMode))]
-    private bool _isSimpleMode = true;
+    private bool isSimpleMode = true;
 
-    /// <summary>Invers zu IsSimpleMode — setzbar fuer die TwoWay-Bindung des Umschalters.</summary>
-    public bool IsAdvancedMode
-    {
-        get => !IsSimpleMode;
-        set => IsSimpleMode = !value;
-    }
-
-    public KeyCaptureField PrefixKey { get; } = new();
-    public KeyCaptureField SuffixKey { get; } = new();
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SimpleStatsText))]
-    private string _simpleText = string.Empty;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SimpleStatsText))]
-    private double _simpleCharDelayMs = 5;
-
-    public string SimpleStatsText
-    {
-        get
-        {
-            var length = SimpleText?.Length ?? 0;
-            var totalMs = length * (int)SimpleCharDelayMs;
-            var duration = totalMs < 1000 ? $"{totalMs} ms" : $"{totalMs / 1000.0:0.#} s";
-            return $"{length} Zeichen · geschätzte Dauer: {duration}";
-        }
-    }
-
-    #endregion
-
+    /// <summary>Keeps the empty hint in sync with the block list.</summary>
     public MacroEditorViewModel()
     {
-        Steps.CollectionChanged += (s, e) => IsEmptyHintVisible = Steps.Count == 0;
+        this.Steps.CollectionChanged += (_, _) => this.IsEmptyHintVisible = this.Steps.Count == 0;
     }
 
-    partial void OnIsSimpleModeChanged(bool value)
+    public override string DisplayName => "Makro (Bausteine)";
+
+    public override ActionType Type => ActionType.Macro;
+
+    /// <summary>The blocks, each one the editor ViewModel of its action type.</summary>
+    public ObservableCollection<ActionEditorViewModelBase> Steps { get; } = new();
+
+    public SimpleMacroForm Simple { get; } = new();
+
+    /// <summary>Inverse of IsSimpleMode, settable for the two-way binding of the mode switch.</summary>
+    public bool IsAdvancedMode
     {
-        if (_isSwitchingMode) return;
-
-        _isSwitchingMode = true;
-        try
-        {
-            if (!value)
-            {
-                // Einfach -> Erweitert: Felder in echte Bausteine ueberfuehren,
-                // damit nichts verloren geht
-                Steps.Clear();
-                foreach (var step in BuildSimpleSteps())
-                {
-                    var editor = CreateEditorFor(step.Type);
-                    if (editor == null) continue;
-                    editor.LoadFrom(step);
-                    Steps.Add(editor);
-                }
-
-                ExpandIfShort();
-            }
-            else
-            {
-                // Erweitert -> Einfach: uebernehmen, was ins einfache Schema passt
-                var action = BuildFromSteps();
-                if (action is MacroAction macro && TryLoadSimple(macro))
-                {
-                    // uebernommen
-                }
-                else
-                {
-                    ClearSimpleFields();
-                }
-            }
-        }
-        finally
-        {
-            _isSwitchingMode = false;
-        }
+        get => !this.IsSimpleMode;
+        set => this.IsSimpleMode = !value;
     }
 
     public override void LoadFrom(ActionBase action)
     {
-        if (action is not MacroAction macro) return;
+        if (action is not MacroAction macro)
+        {
+            return;
+        }
 
-        StepDelayMs = macro.StepDelayMs;
-
-        _isSwitchingMode = true;
+        this.StepDelayMs = macro.StepDelayMs;
+        this.isSwitchingMode = true;
         try
         {
-            // Passt das Makro ins einfache Schema? Dann im Einfach-Modus oeffnen.
-            if (TryLoadSimple(macro))
+            if (this.Simple.TryLoad(macro))
             {
-                IsSimpleMode = true;
-                Steps.Clear();
+                this.IsSimpleMode = true;
+                this.Steps.Clear();
                 return;
             }
 
-            IsSimpleMode = false;
-            ClearSimpleFields();
-
-            Steps.Clear();
-            foreach (var step in macro.Steps)
-            {
-                var editor = CreateEditorFor(step.Type);
-                if (editor == null) continue;
-                editor.LoadFrom(step);
-                Steps.Add(editor);
-            }
-
-            ExpandIfShort();
+            this.IsSimpleMode = false;
+            this.Simple.Clear();
+            this.LoadSteps(macro.Steps);
         }
         finally
         {
-            _isSwitchingMode = false;
+            this.isSwitchingMode = false;
         }
-    }
-
-    /// <summary>Kurze Makros (unter 3 Bausteinen) komplett aufgeklappt anzeigen.</summary>
-    private void ExpandIfShort()
-    {
-        if (Steps.Count >= 3) return;
-
-        foreach (var step in Steps)
-            step.IsExpanded = true;
     }
 
     /// <summary>
-    /// Erkennt das einfache Schema: [Taste] → Text → [Taste], mit jeweils genau
-    /// einer Taste pro Tastensequenz-Baustein.
+    /// Incomplete or empty blocks are kept as they are: a macro may be saved as a draft.
     /// </summary>
-    private bool TryLoadSimple(MacroAction macro)
+    public override ActionBase BuildAction() => new MacroAction
     {
-        if (macro.Steps.Count is 0 or > 3) return false;
-
-        var textSteps = macro.Steps.OfType<SendTextAction>().ToList();
-        if (textSteps.Count != 1) return false;
-
-        var textIndex = macro.Steps.FindIndex(s => s is SendTextAction);
-        KeySequenceAction? prefix = null;
-        KeySequenceAction? suffix = null;
-
-        for (int i = 0; i < macro.Steps.Count; i++)
-        {
-            if (i == textIndex) continue;
-
-            if (macro.Steps[i] is not KeySequenceAction keySeq
-                || keySeq.Keys.Count != 1
-                || keySeq.Keys[0].EventType != KeyEventType.KeyPress
-                || keySeq.UseKernelInjection)
-            {
-                return false;
-            }
-
-            if (i < textIndex) prefix = keySeq;
-            else suffix = keySeq;
-        }
-
-        var text = textSteps[0];
-        SimpleText = text.Text;
-        SimpleCharDelayMs = text.CharDelayMs;
-
-        if (prefix != null) PrefixKey.Set(prefix.Keys[0].VirtualKeyCode, prefix.Keys[0].Modifiers);
-        else PrefixKey.Set(0, ModifierKeys.None);
-
-        if (suffix != null) SuffixKey.Set(suffix.Keys[0].VirtualKeyCode, suffix.Keys[0].Modifiers);
-        else SuffixKey.Set(0, ModifierKeys.None);
-
-        return true;
-    }
-
-    private void ClearSimpleFields()
-    {
-        SimpleText = string.Empty;
-        SimpleCharDelayMs = 5;
-        PrefixKey.Set(0, ModifierKeys.None);
-        SuffixKey.Set(0, ModifierKeys.None);
-    }
-
-    private List<ActionBase> BuildSimpleSteps()
-    {
-        var steps = new List<ActionBase>();
-
-        if (PrefixKey.ToKeyStroke() is { } prefixStroke)
-            steps.Add(new KeySequenceAction { Keys = new List<KeyStroke> { prefixStroke } });
-
-        if (!string.IsNullOrEmpty(SimpleText))
-            steps.Add(new SendTextAction
-            {
-                Text = SimpleText,
-                CharDelayMs = Math.Clamp((int)SimpleCharDelayMs, 0, 500)
-            });
-
-        if (SuffixKey.ToKeyStroke() is { } suffixStroke)
-            steps.Add(new KeySequenceAction { Keys = new List<KeyStroke> { suffixStroke } });
-
-        return steps;
-    }
-
-    public override ActionBase BuildAction()
-    {
-        // Auch unvollstaendige oder leere Bausteine werden uebernommen —
-        // ein Makro darf als Entwurf gespeichert werden.
-        var steps = IsSimpleMode
-            ? BuildSimpleSteps()
-            : Steps.Select(s => s.BuildAction()).ToList();
-
-        return new MacroAction
-        {
-            Steps = steps,
-            StepDelayMs = Math.Clamp((int)StepDelayMs, 0, 60_000)
-        };
-    }
-
-    private ActionBase BuildFromSteps() => new MacroAction
-    {
-        Steps = Steps.Select(s => s.BuildAction()).ToList(),
-        StepDelayMs = Math.Clamp((int)StepDelayMs, 0, 60_000)
+        Steps = this.IsSimpleMode ? this.Simple.BuildSteps() : this.BuildStepActions(),
+        StepDelayMs = Math.Clamp((int)this.StepDelayMs, 0, MaxStepDelayMs),
     };
 
     public override void CancelCapture()
     {
-        PrefixKey.StopCapture();
-        SuffixKey.StopCapture();
-
-        foreach (var step in Steps)
+        this.Simple.CancelCapture();
+        foreach (var step in this.Steps)
+        {
             step.CancelCapture();
+        }
     }
 
+    /// <summary>Adds a block; blocks only exist in advanced mode, so this switches to it.</summary>
     public void AddStep(ActionType type)
     {
-        // Bausteine gibt es nur im erweiterten Modus
-        IsSimpleMode = false;
+        this.IsSimpleMode = false;
+        if (CreateEditorFor(type) is not { } editor)
+        {
+            return;
+        }
 
-        var editor = CreateEditorFor(type);
-        if (editor == null) return;
-
-        // Neu hinzugefuegte Bausteine gleich offen zeigen — man will sie ausfuellen
+        // A new block is shown open because it needs to be filled in.
         editor.IsExpanded = true;
-        Steps.Add(editor);
-    }
-
-    [RelayCommand]
-    private void RemoveStep(ActionEditorViewModelBase? step)
-    {
-        if (step == null) return;
-        step.CancelCapture();
-        Steps.Remove(step);
+        this.Steps.Add(editor);
     }
 
     private static ActionEditorViewModelBase? CreateEditorFor(ActionType type) => type switch
@@ -292,7 +119,74 @@ public partial class MacroEditorViewModel : ActionEditorViewModelBase
         ActionType.BatchCommand => new BatchEditorViewModel(),
         ActionType.System => new SystemEditorViewModel(),
         ActionType.MidiSend => new MidiSendEditorViewModel(),
-        // Kein Makro-in-Makro — haelt Editor und Ausfuehrung ueberschaubar
-        _ => null
+
+        // No macro inside a macro: keeps editor and execution easy to follow.
+        _ => null,
     };
+
+    [RelayCommand]
+    private void RemoveStep(ActionEditorViewModelBase? step)
+    {
+        if (step is null)
+        {
+            return;
+        }
+
+        step.CancelCapture();
+        this.Steps.Remove(step);
+    }
+
+    private List<ActionBase> BuildStepActions() => this.Steps.Select(s => s.BuildAction()).ToList();
+
+    private void LoadSteps(IEnumerable<ActionBase> actions)
+    {
+        this.Steps.Clear();
+        foreach (var action in actions)
+        {
+            if (CreateEditorFor(action.Type) is { } editor)
+            {
+                editor.LoadFrom(action);
+                this.Steps.Add(editor);
+            }
+        }
+
+        if (this.Steps.Count < ExpandAllBelowStepCount)
+        {
+            foreach (var step in this.Steps)
+            {
+                step.IsExpanded = true;
+            }
+        }
+    }
+
+    partial void OnIsSimpleModeChanged(bool value)
+    {
+        if (this.isSwitchingMode)
+        {
+            return;
+        }
+
+        this.isSwitchingMode = true;
+        try
+        {
+            if (value)
+            {
+                // Advanced to simple: take over what fits the simple form, otherwise start empty.
+                var macro = new MacroAction { Steps = this.BuildStepActions() };
+                if (!this.Simple.TryLoad(macro))
+                {
+                    this.Simple.Clear();
+                }
+            }
+            else
+            {
+                // Simple to advanced: turn the fields into real blocks so nothing is lost.
+                this.LoadSteps(this.Simple.BuildSteps());
+            }
+        }
+        finally
+        {
+            this.isSwitchingMode = false;
+        }
+    }
 }

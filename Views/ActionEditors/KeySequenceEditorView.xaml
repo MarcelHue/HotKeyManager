@@ -29,7 +29,7 @@
                        Style="{ThemeResource BodyStrongTextBlockStyle}"
                        VerticalAlignment="Center" />
 
-            <!-- Simple Mode: Einzelne Taste erfassen -->
+            <!-- Simple mode: capture a single key. -->
             <Button Grid.Column="1"
                     Command="{x:Bind ViewModel.AddKeyStrokeCommand}"
                     IsEnabled="{x:Bind ViewModel.IsAddKeyEnabled, Mode=OneWay}"
@@ -40,7 +40,7 @@
                 </StackPanel>
             </Button>
 
-            <!-- Taste manuell aus Liste waehlen (z.B. F13-F24, Medientasten) -->
+            <!-- Keys like F13-F24 or media keys cannot be captured from a normal keyboard. -->
             <Button Grid.Column="2"
                     Visibility="{x:Bind CollapsedIf(ViewModel.IsAdvancedMode), Mode=OneWay}"
                     ToolTipService.ToolTip="Taste manuell aus Liste auswählen (z.B. F13-F24)">
@@ -72,7 +72,7 @@
                 </Button.Flyout>
             </Button>
 
-            <!-- Advanced Mode: Aufnahme starten/stoppen -->
+            <!-- Advanced mode: record separate KeyDown/KeyUp events. -->
             <Button Grid.Column="3"
                     Command="{x:Bind ViewModel.ToggleRecordingCommand}"
                     Background="{x:Bind RecordBackground(ViewModel.IsRecordingActive), Mode=OneWay}"
@@ -86,9 +86,13 @@
 
         <InfoBar Severity="Informational"
                  Title="Erweiterter Modus"
-                 Message="Klicke 'Aufnahme starten', drücke deine Tastenkombination, dann 'Aufnahme stoppen'. Jedes KeyDown und KeyUp wird separat aufgezeichnet."
                  IsOpen="{x:Bind ViewModel.IsAdvancedMode, Mode=OneWay}"
-                 IsClosable="False" />
+                 IsClosable="False">
+            <InfoBar.Message>
+                Klicke 'Aufnahme starten', drücke deine Tastenkombination, dann 'Aufnahme stoppen'.
+                Jedes KeyDown und KeyUp wird separat aufgezeichnet.
+            </InfoBar.Message>
+        </InfoBar>
 
         <ListView ItemsSource="{x:Bind ViewModel.KeyStrokes, Mode=OneWay}"
                   SelectionMode="None"

@@ -1,27 +1,13 @@
 namespace HotKeyManager.Models;
 
-public enum SystemActionKind
-{
-    PlayPause,
-    NextTrack,
-    PreviousTrack,
-    StopMedia,
-    VolumeUp,
-    VolumeDown,
-    ToggleSystemMute,
-    ToggleMicrophoneMute,
-    MicrophoneMuteOn,
-    MicrophoneMuteOff
-}
-
-/// <summary>
-/// Windows-Systemaktion: Medientasten und Mikrofon-Stummschaltung.
-/// </summary>
+/// <summary>Windows system action: media keys and microphone mute.</summary>
 public class SystemAction : ActionBase
 {
     public override ActionType Type => ActionType.System;
+
     public override string DisplayName => "Windows-Aktion";
-    public override string Description => Kind switch
+
+    public override string Description => this.Kind switch
     {
         SystemActionKind.PlayPause => "Wiedergabe/Pause",
         SystemActionKind.NextTrack => "Nächster Titel",

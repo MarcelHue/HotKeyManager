@@ -1,34 +1,48 @@
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Windows.UI;
 
 namespace HotKeyManager.Services;
 
 /// <summary>
-/// Wendet das in den Einstellungen gewaehlte Theme (hell/dunkel/system) auf das Hauptfenster an.
-/// Nutzt ElementTheme auf dem Fenster-Content statt Application.RequestedTheme,
-/// damit zur Laufzeit umgeschaltet werden kann und ContentDialogs das Theme erben.
+/// Applies the theme chosen in the settings (light, dark, system) to the main window.
+/// Sets ElementTheme on the window content instead of Application.RequestedTheme, because that
+/// can be switched at runtime and ContentDialogs inherit it.
 /// </summary>
 public static class ThemeService
 {
+    private static readonly Color DarkInactiveForeground = Color.FromArgb(255, 160, 160, 160);
+    private static readonly Color DarkHoverBackground = Color.FromArgb(25, 255, 255, 255);
+    private static readonly Color LightInactiveForeground = Color.FromArgb(255, 96, 96, 96);
+    private static readonly Color LightHoverBackground = Color.FromArgb(25, 0, 0, 0);
+
+    /// <summary>Applies a theme name from the settings ("light", "dark", anything else = system).</summary>
     public static void Apply(string? theme)
     {
         var window = App.Current.MainWindow;
-        if (window?.Content is not FrameworkElement root) return;
+        if (window?.Content is not FrameworkElement root)
+        {
+            return;
+        }
 
         root.RequestedTheme = Parse(theme);
         UpdateTitleBarButtons(window, root.ActualTheme);
     }
 
-    /// <summary>
-    /// Passt die Farben der Fenster-Buttons (Minimieren/Maximieren/Schliessen) an das effektive Theme an.
-    /// </summary>
+    /// <summary>Colors the caption buttons (minimize, maximize, close) for the effective theme.</summary>
     public static void UpdateTitleBarButtons(Window window, ElementTheme actualTheme)
     {
-        if (!AppWindowTitleBar.IsCustomizationSupported()) return;
+        if (!AppWindowTitleBar.IsCustomizationSupported())
+        {
+            return;
+        }
 
         var titleBar = window.AppWindow?.TitleBar;
-        if (titleBar == null) return;
+        if (titleBar is null)
+        {
+            return;
+        }
 
         titleBar.ButtonBackgroundColor = Colors.Transparent;
         titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
@@ -36,15 +50,15 @@ public static class ThemeService
         if (actualTheme == ElementTheme.Dark)
         {
             titleBar.ButtonForegroundColor = Colors.White;
-            titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 160, 160, 160);
-            titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(25, 255, 255, 255);
+            titleBar.ButtonInactiveForegroundColor = DarkInactiveForeground;
+            titleBar.ButtonHoverBackgroundColor = DarkHoverBackground;
             titleBar.ButtonHoverForegroundColor = Colors.White;
         }
         else
         {
             titleBar.ButtonForegroundColor = Colors.Black;
-            titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 96, 96, 96);
-            titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(25, 0, 0, 0);
+            titleBar.ButtonInactiveForegroundColor = LightInactiveForeground;
+            titleBar.ButtonHoverBackgroundColor = LightHoverBackground;
             titleBar.ButtonHoverForegroundColor = Colors.Black;
         }
     }

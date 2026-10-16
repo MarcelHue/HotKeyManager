@@ -4,84 +4,72 @@ using HotKeyManager.Models;
 
 namespace HotKeyManager.Services;
 
+/// <summary>Loads and saves config.json in %APPDATA%\HotKeyManager, with a backup of the previous version.</summary>
 public class ConfigurationService
 {
     private static readonly string ConfigFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "HotKeyManager");
-    
+
     private static readonly string ConfigPath = Path.Combine(ConfigFolder, "config.json");
     private static readonly string ConfigBackupPath = Path.Combine(ConfigFolder, "config.json.bak");
-    
+    private static readonly string ConfigTempPath = ConfigPath + ".tmp";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
-    
-    // SaveAsync wird an vielen Stellen fire-and-forget aufgerufen — der Lock verhindert,
-    // dass parallele Saves sich die Temp-Datei gegenseitig wegschnappen.
-    private readonly SemaphoreSlim _saveLock = new(1, 1);
 
+    // SaveAsync is called fire-and-forget in many places; without the lock parallel saves
+    // would fight over the temp file.
+    private readonly SemaphoreSlim saveLock = new(1, 1);
+
+    /// <summary>The current configuration; changes are written by <see cref="SaveAsync"/>.</summary>
     public AppConfiguration Configuration { get; set; } = new();
-    
+
+    /// <summary>Loads config.json, falls back to the backup, and starts empty if both fail.</summary>
     public async Task LoadAsync()
     {
-        // Erst die Hauptdatei versuchen, bei Fehler (korrupt/abgebrochener Save)
-        // automatisch auf das Backup zurueckfallen.
-        if (await TryLoadFromAsync(ConfigPath))
+        if (await this.TryLoadFromAsync(ConfigPath))
+        {
             return;
+        }
 
-        if (await TryLoadFromAsync(ConfigBackupPath))
+        // The main file can be corrupt after an interrupted save; the backup is the previous version.
+        if (await this.TryLoadFromAsync(ConfigBackupPath))
         {
             App.Current.LogService.Warning("config.json war defekt — Backup wurde wiederhergestellt.");
-            await SaveAsync();
+            await this.SaveAsync();
             return;
         }
 
-        Configuration = new AppConfiguration();
+        this.Configuration = new AppConfiguration();
     }
 
-    private async Task<bool> TryLoadFromAsync(string path)
-    {
-        try
-        {
-            if (!File.Exists(path)) return false;
-
-            var json = await File.ReadAllTextAsync(path);
-            var config = JsonSerializer.Deserialize<AppConfiguration>(json, JsonOptions);
-            if (config == null) return false;
-
-            Configuration = config;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            App.Current.LogService.Error($"Fehler beim Laden der Konfiguration ({Path.GetFileName(path)})", ex);
-            return false;
-        }
-    }
-
+    /// <summary>Writes the configuration atomically; errors are logged, not thrown.</summary>
     public async Task SaveAsync()
     {
-        await _saveLock.WaitAsync();
+        await this.saveLock.WaitAsync();
         try
         {
-            // Ensure directory exists
             Directory.CreateDirectory(ConfigFolder);
 
-            var json = JsonSerializer.Serialize(Configuration, JsonOptions);
+            var json = JsonSerializer.Serialize(this.Configuration, JsonOptions);
 
-            // Atomar schreiben: erst Temp-Datei, dann Replace mit Backup der alten Datei.
-            // So bleibt bei einem Absturz mitten im Speichern immer eine gueltige Config erhalten.
-            var tempPath = ConfigPath + ".tmp";
-            await File.WriteAllTextAsync(tempPath, json);
+            // Write to a temp file first and then swap it in, keeping the old file as backup.
+            // A crash in the middle of saving then always leaves a valid config behind.
+            await File.WriteAllTextAsync(ConfigTempPath, json);
 
             if (File.Exists(ConfigPath))
-                File.Replace(tempPath, ConfigPath, ConfigBackupPath);
+            {
+                File.Replace(ConfigTempPath, ConfigPath, ConfigBackupPath);
+            }
             else
-                File.Move(tempPath, ConfigPath);
+            {
+                File.Move(ConfigTempPath, ConfigPath);
+            }
         }
         catch (Exception ex)
         {
@@ -89,13 +77,40 @@ public class ConfigurationService
         }
         finally
         {
-            _saveLock.Release();
+            this.saveLock.Release();
         }
     }
-    
+
+    /// <summary>Replaces the configuration with defaults and saves it.</summary>
     public async Task ResetAsync()
     {
-        Configuration = new AppConfiguration();
-        await SaveAsync();
+        this.Configuration = new AppConfiguration();
+        await this.SaveAsync();
+    }
+
+    private async Task<bool> TryLoadFromAsync(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            var json = await File.ReadAllTextAsync(path);
+            var config = JsonSerializer.Deserialize<AppConfiguration>(json, JsonOptions);
+            if (config is null)
+            {
+                return false;
+            }
+
+            this.Configuration = config;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Error($"Fehler beim Laden der Konfiguration ({Path.GetFileName(path)})", ex);
+            return false;
+        }
     }
 }

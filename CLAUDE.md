@@ -147,3 +147,12 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 | `HotkeyEditorPage` | Create / edit a hotkey (full page, scrolls; key capture + window capture) |
 | `Views/ActionEditors/*` | One UserControl per action type, selected via `ActionEditorTemplateSelector` |
 | `SettingsPage` | Theme, startup/tray, kernel driver, import/export, update check |
+
+## Code style (in force since 2026-10-15)
+
+Since 2026-10-15 the global code-style rules apply to this project (`~/.claude/CLAUDE.md`, section "Code-Stil (alle Projekte)"; source `~/code-stil/code-style.md`). Violations are configured as **errors**, not warnings (`.editorconfig`, `PSScriptAnalyzerSettings.psd1`).
+
+- **Converted.** The whole code base follows the rules (2026-10-15); `<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>` makes violations fail the build. Large classes were split into standalone classes by responsibility, not into partial files (e.g. `Services/Execution/*` for running actions, `Services/Midi/*`, `KeyCaptureField` / `MidiTriggerCapture` / `PadTriggerCapture` / `WindowTargetPicker` for the editor triggers, `ListTriggerCapture`, `InlineRename`, `HotkeyGrouping`, `HotkeyListMenus`, `HotkeyListDialogs`, `HotkeyRowDragDrop` for the list).
+- Every file you edit: keep the whole file in line with the rules (names, `this.`, braces, English comments, nesting, magic numbers). Ask before splitting files or methods.
+- Roslyn accepts a leading `_` under `camel_case`, so the build cannot catch `_fields` — they are still not allowed.
+- Check before finishing, the result must be empty: `Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\PSScriptAnalyzerSettings.psd1`; for C# `dotnet build HotKeyManager.csproj -p:Platform=x64` must show 0 errors and 0 warnings.

@@ -6,86 +6,82 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace HotKeyManager.Services;
 
+/// <summary>Tray icon with an open/exit context menu; double-click shows the main window.</summary>
 public class TrayIconService : IDisposable
 {
-    private readonly TaskbarIcon _trayIcon;
-    private readonly Window _mainWindow;
-    private bool _disposed;
-    
-    public TrayIconService(Window mainWindow)
+    private const string IconFileName = "icon-512.ico";
+    private const string FallbackIconText = "HK";
+
+    private readonly TaskbarIcon trayIcon;
+    private bool disposed;
+
+    /// <summary>Creates the tray icon and shows it right away.</summary>
+    public TrayIconService()
     {
-        _mainWindow = mainWindow;
-        
-        // Create WinUI MenuFlyout for context menu
-        var contextMenu = new MenuFlyout();
-        
-        var openMenuItem = new MenuFlyoutItem 
-        { 
-            Text = "Öffnen",
-            Command = new RelayCommand(ShowMainWindow)
-        };
-        contextMenu.Items.Add(openMenuItem);
-        
-        contextMenu.Items.Add(new MenuFlyoutSeparator());
-        
-        var exitMenuItem = new MenuFlyoutItem 
-        { 
-            Text = "Beenden",
-            Command = new RelayCommand(() => App.Current.ExitApplication())
-        };
-        contextMenu.Items.Add(exitMenuItem);
-        
-        _trayIcon = new TaskbarIcon
+        this.trayIcon = new TaskbarIcon
         {
             ToolTipText = "HotKey Manager",
-            ContextFlyout = contextMenu,
-            DoubleClickCommand = new RelayCommand(ShowMainWindow),
+            ContextFlyout = this.CreateContextMenu(),
+            DoubleClickCommand = new RelayCommand(this.ShowMainWindow),
             NoLeftClickDelay = true
         };
-        
-        // Load icon from .ico file
+
+        this.LoadIcon();
+        this.trayIcon.ForceCreate();
+    }
+
+    /// <summary>Removes the tray icon.</summary>
+    public void Dispose()
+    {
+        if (this.disposed)
+        {
+            return;
+        }
+
+        this.trayIcon.Dispose();
+        this.disposed = true;
+    }
+
+    private static GeneratedIconSource CreateFallbackIcon() => new()
+    {
+        Text = FallbackIconText,
+        Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
+        Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.DodgerBlue)
+    };
+
+    private MenuFlyout CreateContextMenu()
+    {
+        var contextMenu = new MenuFlyout();
+        contextMenu.Items.Add(new MenuFlyoutItem { Text = "Öffnen", Command = new RelayCommand(this.ShowMainWindow) });
+        contextMenu.Items.Add(new MenuFlyoutSeparator());
+        contextMenu.Items.Add(new MenuFlyoutItem
+        {
+            Text = "Beenden",
+            Command = new RelayCommand(() => App.Current.ExitApplication())
+        });
+        return contextMenu;
+    }
+
+    private void LoadIcon()
+    {
         try
         {
-            var iconPath = Path.Combine(AppContext.BaseDirectory, "icon-512.ico");
+            var iconPath = Path.Combine(AppContext.BaseDirectory, IconFileName);
             if (File.Exists(iconPath))
             {
-                _trayIcon.Icon = new Icon(iconPath);
+                this.trayIcon.Icon = new Icon(iconPath);
             }
             else
             {
-                // Fallback to generated icon
-                _trayIcon.IconSource = new GeneratedIconSource
-                {
-                    Text = "HK",
-                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
-                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.DodgerBlue)
-                };
+                this.trayIcon.IconSource = CreateFallbackIcon();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to generated icon
-            _trayIcon.IconSource = new GeneratedIconSource
-            {
-                Text = "HK",
-                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
-                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.DodgerBlue)
-            };
+            App.Current.LogService.Debug($"Tray-Icon konnte nicht geladen werden: {ex.Message}");
+            this.trayIcon.IconSource = CreateFallbackIcon();
         }
-        
-        _trayIcon.ForceCreate();
     }
-    
-    private void ShowMainWindow()
-    {
-        App.Current.ShowMainWindow();
-    }
-    
-    public void Dispose()
-    {
-        if (_disposed) return;
-        
-        _trayIcon.Dispose();
-        _disposed = true;
-    }
+
+    private void ShowMainWindow() => App.Current.ShowMainWindow();
 }

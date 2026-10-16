@@ -8,122 +8,129 @@ using Microsoft.UI.Dispatching;
 namespace HotKeyManager.ViewModels;
 
 /// <summary>
-/// Wiederverwendbares Feld zum Erfassen einer einzelnen Tastenkombination
-/// (Einfach-Modus des Makro-Editors: Taste davor / Taste danach).
-/// Hook-Events kommen vom Hook-Thread und werden auf den UI-Thread marshalled.
+/// Reusable field that captures a single key combination (hotkey trigger, key before/after in the
+/// simple macro form). Hook events arrive on the hook thread and are marshalled to the UI thread.
 /// </summary>
 public partial class KeyCaptureField : ObservableObject
 {
-    private readonly KeyboardHookService _keyboardHook;
-    private readonly DispatcherQueue _dispatcherQueue;
-    private bool _isCapturing;
+    private const string NotSetText = "Nicht gesetzt";
+    private const string DefaultButtonText = "Erfassen";
+    private const int KeyPressDelayMs = 50;
 
+    private readonly KeyboardHookService keyboardHook;
+    private readonly DispatcherQueue dispatcherQueue;
+    private readonly string idleButtonText;
+    private bool isCapturing;
+
+    [ObservableProperty]
+    private string displayText = NotSetText;
+
+    [ObservableProperty]
+    private string buttonText;
+
+    [ObservableProperty]
+    private bool isButtonEnabled = true;
+
+    [ObservableProperty]
+    private bool hasKey;
+
+    /// <summary>Creates the field; services that are not passed in default to the app-wide instances.</summary>
+    /// <param name="idleButtonText">Caption of the capture button while no capture is running.</param>
+    public KeyCaptureField(
+        string idleButtonText = DefaultButtonText,
+        KeyboardHookService? keyboardHook = null,
+        DispatcherQueue? dispatcherQueue = null)
+    {
+        this.idleButtonText = idleButtonText;
+        this.buttonText = idleButtonText;
+        this.keyboardHook = keyboardHook ?? App.Current.KeyboardHookService;
+        this.dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
+    }
+
+    /// <summary>Virtual key code of the captured key, 0 if none is set.</summary>
     public int VirtualKeyCode { get; private set; }
+
+    /// <summary>Modifier keys of the captured combination.</summary>
     public ModifierKeys Modifiers { get; private set; }
 
-    [ObservableProperty]
-    private string _displayText = "Nicht gesetzt";
+    /// <summary>True when a key is set.</summary>
+    public bool IsSet => this.VirtualKeyCode != 0;
 
-    [ObservableProperty]
-    private string _buttonText = "Erfassen";
-
-    [ObservableProperty]
-    private bool _isButtonEnabled = true;
-
-    [ObservableProperty]
-    private bool _hasKey;
-
-    public bool IsSet => VirtualKeyCode != 0;
-
-    public KeyCaptureField(KeyboardHookService? keyboardHook = null, DispatcherQueue? dispatcherQueue = null)
-    {
-        _keyboardHook = keyboardHook ?? App.Current.KeyboardHookService;
-        _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread() ?? App.Current.DispatcherQueue;
-    }
-
+    /// <summary>Sets the key combination without capturing it.</summary>
     public void Set(int virtualKeyCode, ModifierKeys modifiers)
     {
-        VirtualKeyCode = virtualKeyCode;
-        Modifiers = modifiers;
-        UpdateDisplay();
+        this.VirtualKeyCode = virtualKeyCode;
+        this.Modifiers = modifiers;
+        this.UpdateDisplay();
     }
+
+    /// <summary>Stops a running capture and keeps the previous key.</summary>
+    public void StopCapture()
+    {
+        if (!this.isCapturing)
+        {
+            return;
+        }
+
+        this.isCapturing = false;
+        this.keyboardHook.KeyPressed -= this.OnKeyPressed;
+        this.keyboardHook.IsCapturing = false;
+
+        this.ButtonText = this.idleButtonText;
+        this.IsButtonEnabled = true;
+        this.UpdateDisplay();
+    }
+
+    /// <summary>Builds the matching key stroke, or null if no key is set.</summary>
+    public KeyStroke? ToKeyStroke() => this.VirtualKeyCode == 0
+        ? null
+        : new KeyStroke
+        {
+            VirtualKeyCode = this.VirtualKeyCode,
+            Modifiers = this.Modifiers,
+            DelayAfterMs = KeyPressDelayMs,
+            DisplayText = this.DisplayText,
+        };
 
     [RelayCommand]
     private void StartCapture()
     {
-        if (_isCapturing) return;
+        if (this.isCapturing)
+        {
+            return;
+        }
 
-        _isCapturing = true;
-        _keyboardHook.IsCapturing = true;
-        _keyboardHook.KeyPressed += OnKeyPressed;
+        this.isCapturing = true;
+        this.keyboardHook.IsCapturing = true;
+        this.keyboardHook.KeyPressed += this.OnKeyPressed;
 
-        DisplayText = "Drücke eine Taste...";
-        ButtonText = "Erfassen...";
-        IsButtonEnabled = false;
-    }
-
-    public void StopCapture()
-    {
-        if (!_isCapturing) return;
-
-        _isCapturing = false;
-        _keyboardHook.KeyPressed -= OnKeyPressed;
-        _keyboardHook.IsCapturing = false;
-
-        ButtonText = "Erfassen";
-        IsButtonEnabled = true;
-        UpdateDisplay();
+        this.DisplayText = "Drücke eine Taste...";
+        this.ButtonText = "Erfassen...";
+        this.IsButtonEnabled = false;
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
     {
         e.Handled = true;
 
-        _dispatcherQueue.TryEnqueue(() =>
+        this.dispatcherQueue.TryEnqueue(() =>
         {
-            VirtualKeyCode = e.VirtualKeyCode;
-            Modifiers = e.Modifiers;
-            StopCapture();
+            this.VirtualKeyCode = e.VirtualKeyCode;
+            this.Modifiers = e.Modifiers;
+            this.StopCapture();
         });
     }
 
     [RelayCommand]
     private void Clear()
     {
-        StopCapture();
-        VirtualKeyCode = 0;
-        Modifiers = ModifierKeys.None;
-        UpdateDisplay();
+        this.StopCapture();
+        this.Set(0, ModifierKeys.None);
     }
 
     private void UpdateDisplay()
     {
-        HasKey = VirtualKeyCode != 0;
-
-        if (VirtualKeyCode == 0)
-        {
-            DisplayText = "Nicht gesetzt";
-            return;
-        }
-
-        var parts = new List<string>();
-        if (Modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Ctrl");
-        if (Modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
-        if (Modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
-        if (Modifiers.HasFlag(ModifierKeys.Windows)) parts.Add("Win");
-        parts.Add(KeyHelper.GetKeyName(VirtualKeyCode));
-
-        DisplayText = string.Join(" + ", parts);
+        this.HasKey = this.VirtualKeyCode != 0;
+        this.DisplayText = this.HasKey ? KeyHelper.FormatCombination(this.VirtualKeyCode, this.Modifiers) : NotSetText;
     }
-
-    /// <summary>Baut den passenden KeyStroke, oder null wenn keine Taste gesetzt ist.</summary>
-    public KeyStroke? ToKeyStroke() => VirtualKeyCode == 0
-        ? null
-        : new KeyStroke
-        {
-            VirtualKeyCode = VirtualKeyCode,
-            Modifiers = Modifiers,
-            DelayAfterMs = 50,
-            DisplayText = DisplayText
-        };
 }

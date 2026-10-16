@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <StackPanel Spacing="8">
+        <!-- The item order must match SystemEditorViewModel.Kinds. -->
         <ComboBox Header="Aktion"
                   HorizontalAlignment="Stretch"
                   SelectedIndex="{x:Bind ViewModel.KindIndex, Mode=TwoWay}">
@@ -20,9 +21,11 @@
             <ComboBoxItem Content="Mikrofon aktivieren" />
         </ComboBox>
 
-        <TextBlock Text="Medien-Aktionen steuern die App, die gerade Medien wiedergibt. Mikrofon-Aktionen wirken auf das Standard-Aufnahmegerät von Windows."
-                   FontSize="12"
+        <TextBlock FontSize="12"
                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                   TextWrapping="Wrap" />
+                   TextWrapping="Wrap">
+            Medien-Aktionen steuern die App, die gerade Medien wiedergibt.
+            Mikrofon-Aktionen wirken auf das Standard-Aufnahmegerät von Windows.
+        </TextBlock>
     </StackPanel>
 </UserControl>

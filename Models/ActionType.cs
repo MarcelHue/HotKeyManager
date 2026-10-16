@@ -1,5 +1,6 @@
 namespace HotKeyManager.Models;
 
+/// <summary>The kinds of actions a hotkey can run.</summary>
 public enum ActionType
 {
     Webhook,

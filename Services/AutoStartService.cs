@@ -2,11 +2,13 @@ using Microsoft.Win32;
 
 namespace HotKeyManager.Services;
 
+/// <summary>Registers the app in the current user's Run key so it starts with Windows.</summary>
 public class AutoStartService
 {
     private const string AppName = "HotKeyManager";
     private const string RegistryPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-    
+
+    /// <summary>True when the Run key contains an entry for the app.</summary>
     public bool IsAutoStartEnabled
     {
         get
@@ -14,8 +16,7 @@ public class AutoStartService
             try
             {
                 using var key = Registry.CurrentUser.OpenSubKey(RegistryPath, false);
-                var value = key?.GetValue(AppName);
-                return value != null;
+                return key?.GetValue(AppName) is not null;
             }
             catch (Exception ex)
             {
@@ -24,28 +25,31 @@ public class AutoStartService
             }
         }
     }
-    
+
+    /// <summary>Adds or removes the Run key entry for the current executable.</summary>
+    /// <returns>False when the Run key could not be opened or written.</returns>
     public bool SetAutoStart(bool enabled)
     {
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(RegistryPath, true);
-            
-            if (key == null) return false;
-            
-            if (enabled)
+            if (key is null)
             {
-                var exePath = Environment.ProcessPath;
-                if (!string.IsNullOrEmpty(exePath))
-                {
-                    key.SetValue(AppName, $"\"{exePath}\"");
-                }
+                return false;
             }
-            else
+
+            if (!enabled)
             {
                 key.DeleteValue(AppName, false);
+                return true;
             }
-            
+
+            var exePath = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exePath))
+            {
+                key.SetValue(AppName, $"\"{exePath}\"");
+            }
+
             return true;
         }
         catch (Exception ex)

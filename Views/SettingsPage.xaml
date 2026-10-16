@@ -10,7 +10,6 @@
 
             <TextBlock Text="Einstellungen" Style="{ThemeResource TitleTextBlockStyle}" />
 
-            <!-- Darstellung -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Darstellung" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -23,7 +22,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Allgemein -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Allgemein" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -85,7 +83,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Logging -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Logging" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -97,10 +94,12 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="2">
                             <TextBlock Text="Log-Level" />
-                            <TextBlock Text="Bestimmt, welche Meldungen in die Log-Datei geschrieben werden (%APPDATA%\HotKeyManager\hotkey-manager.log)"
-                                       FontSize="12"
+                            <TextBlock FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       TextWrapping="Wrap" />
+                                       TextWrapping="Wrap">
+                                Bestimmt, welche Meldungen in die Log-Datei geschrieben werden
+                                (%APPDATA%\HotKeyManager\hotkey-manager.log)
+                            </TextBlock>
                         </StackPanel>
                         <ComboBox Grid.Column="1"
                                   Width="150"
@@ -115,7 +114,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Kernel-Mode Treiber -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Kernel-Mode Treiber" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -151,7 +149,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Konfiguration -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Konfiguration" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -219,7 +216,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Über -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Über HotKey Manager" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -246,9 +242,10 @@
                         </Button>
                     </Grid>
 
-                    <TextBlock Text="Ein globaler Hotkey Manager für Windows mit Unterstützung für Webhooks, Tastensequenzen, Text-Makros, Programmstart und Batch-Befehle."
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               TextWrapping="Wrap" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap">
+                        Ein globaler Hotkey Manager für Windows mit Unterstützung für Webhooks, Tastensequenzen,
+                        Text-Makros, Programmstart und Batch-Befehle.
+                    </TextBlock>
                 </StackPanel>
             </Border>
 

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Lokales Build-Script für HotKeyManager (dotnet CLI, kein Visual Studio nötig).

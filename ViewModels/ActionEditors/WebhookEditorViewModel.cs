@@ -3,8 +3,10 @@ using HotKeyManager.Models;
 
 namespace HotKeyManager.ViewModels.ActionEditors;
 
+/// <summary>Editor for the block that calls a webhook.</summary>
 public partial class WebhookEditorViewModel : ActionEditorViewModelBase
 {
+    /// <summary>Selectable content types; the order must match the ComboBox items in WebhookEditorView.</summary>
     public static readonly IReadOnlyList<string> ContentTypes = new[]
     {
         "application/json",
@@ -12,52 +14,57 @@ public partial class WebhookEditorViewModel : ActionEditorViewModelBase
         "text/plain"
     };
 
+    /// <summary>Selectable HTTP methods in the order of <see cref="HttpMethodType"/>.</summary>
     public static readonly IReadOnlyList<string> HttpMethods = new[]
     {
         "GET", "POST", "PUT", "DELETE", "PATCH"
     };
 
-    // Headers werden im UI (noch) nicht editiert, aber beim Bearbeiten unveraendert durchgereicht,
-    // damit sie beim Speichern nicht verloren gehen.
-    private Dictionary<string, string> _headers = new();
+    // The UI cannot edit headers yet; they are passed through unchanged so saving does not drop them.
+    private Dictionary<string, string> headers = new();
 
+    [ObservableProperty]
+    private string url = string.Empty;
+
+    [ObservableProperty]
+    private int methodIndex;
+
+    [ObservableProperty]
+    private int contentTypeIndex;
+
+    [ObservableProperty]
+    private string body = string.Empty;
+
+    /// <inheritdoc />
     public override string DisplayName => "Webhook aufrufen";
+
+    /// <inheritdoc />
     public override ActionType Type => ActionType.Webhook;
 
-    [ObservableProperty]
-    private string _url = string.Empty;
-
-    [ObservableProperty]
-    private int _methodIndex;
-
-    [ObservableProperty]
-    private int _contentTypeIndex;
-
-    [ObservableProperty]
-    private string _body = string.Empty;
-
+    /// <inheritdoc />
     public override void LoadFrom(ActionBase action)
     {
-        if (action is not WebhookAction webhook) return;
+        if (action is not WebhookAction webhook)
+        {
+            return;
+        }
 
-        Url = webhook.Url;
-        MethodIndex = (int)webhook.Method;
-        Body = webhook.Body;
-        _headers = webhook.Headers;
+        this.Url = webhook.Url;
+        this.MethodIndex = (int)webhook.Method;
+        this.Body = webhook.Body;
+        this.headers = webhook.Headers;
 
         var index = ContentTypes.ToList().IndexOf(webhook.ContentType);
-        ContentTypeIndex = index >= 0 ? index : 0;
+        this.ContentTypeIndex = index >= 0 ? index : 0;
     }
 
-    public override ActionBase BuildAction()
+    /// <inheritdoc />
+    public override ActionBase BuildAction() => new WebhookAction
     {
-        return new WebhookAction
-        {
-            Url = Url.Trim(),
-            Method = (HttpMethodType)MethodIndex,
-            ContentType = ContentTypes[Math.Clamp(ContentTypeIndex, 0, ContentTypes.Count - 1)],
-            Body = Body,
-            Headers = _headers
-        };
-    }
+        Url = this.Url.Trim(),
+        Method = (HttpMethodType)this.MethodIndex,
+        ContentType = ContentTypes[Math.Clamp(this.ContentTypeIndex, 0, ContentTypes.Count - 1)],
+        Body = this.Body,
+        Headers = this.headers
+    };
 }

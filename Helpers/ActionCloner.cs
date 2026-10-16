@@ -4,14 +4,18 @@ using HotKeyManager.Models;
 namespace HotKeyManager.Helpers;
 
 /// <summary>
-/// Tiefe Kopie von Aktionen ueber einen JSON-Roundtrip — nutzt die vorhandene
-/// $type-Polymorphie, damit auch verschachtelte Makro-Bausteine korrekt kopiert werden.
+/// Deep-copies actions through a JSON round trip. This reuses the $type polymorphism,
+/// so nested macro steps are copied correctly too.
 /// </summary>
 public static class ActionCloner
 {
+    /// <summary>Returns a deep copy of the action, or null if it is null or cannot be copied.</summary>
     public static ActionBase? Clone(ActionBase? action)
     {
-        if (action == null) return null;
+        if (action is null)
+        {
+            return null;
+        }
 
         try
         {

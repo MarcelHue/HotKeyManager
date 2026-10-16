@@ -1,7 +1,8 @@
 namespace HotKeyManager.Helpers;
 
+/// <summary>App-wide constants.</summary>
 public static class GlobalConst
 {
-    public const int STARTUP_WINDOW_WIDTH = 1600;
-    public const int STARTUP_WINDOW_HEIGHT = 900;
+    public const int StartupWindowWidth = 1600;
+    public const int StartupWindowHeight = 900;
 }

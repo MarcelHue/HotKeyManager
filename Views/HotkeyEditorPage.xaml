@@ -7,8 +7,8 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!-- Top-Level gibt es nur noch das Baustein-Makro; die uebrigen Editor-Templates
-             leben als Baustein-Templates in MacroEditorView.Resources -->
+        <!-- The block macro is the only top-level editor; the other editor templates
+             live on as block templates in MacroEditorView.Resources. -->
         <DataTemplate x:Key="MacroEditorTemplate">
             <ae:MacroEditorView />
         </DataTemplate>
@@ -28,7 +28,6 @@
                      Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                      IsClosable="True" />
 
-            <!-- Allgemein -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Allgemein" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -59,22 +58,22 @@
                                     BorderThickness="1"
                                     CornerRadius="4"
                                     Padding="12,10">
-                                <TextBlock Text="{x:Bind ViewModel.HotkeyDisplayText, Mode=OneWay}"
+                                <TextBlock Text="{x:Bind ViewModel.Key.DisplayText, Mode=OneWay}"
                                            FontFamily="Consolas"
                                            VerticalAlignment="Center" />
                             </Border>
                             <Button Grid.Column="1"
-                                    Command="{x:Bind ViewModel.StartKeyCaptureCommand}"
-                                    IsEnabled="{x:Bind ViewModel.IsCaptureKeyEnabled, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.Key.StartCaptureCommand}"
+                                    IsEnabled="{x:Bind ViewModel.Key.IsButtonEnabled, Mode=OneWay}"
                                     VerticalAlignment="Stretch">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xE765;" FontSize="14" />
-                                    <TextBlock Text="{x:Bind ViewModel.CaptureKeyButtonText, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind ViewModel.Key.ButtonText, Mode=OneWay}" />
                                 </StackPanel>
                             </Button>
                             <Button Grid.Column="2"
-                                    Command="{x:Bind ViewModel.ClearKeyCommand}"
-                                    Visibility="{x:Bind ViewModel.HasKey, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.Key.ClearCommand}"
+                                    Visibility="{x:Bind ViewModel.Key.HasKey, Mode=OneWay}"
                                     VerticalAlignment="Stretch"
                                     ToolTipService.ToolTip="Tastenkombination entfernen">
                                 <FontIcon Glyph="&#xE711;" FontSize="12" />
@@ -96,32 +95,72 @@
                                     BorderThickness="1"
                                     CornerRadius="4"
                                     Padding="12,10">
-                                <TextBlock Text="{x:Bind ViewModel.MidiDisplayText, Mode=OneWay}"
+                                <TextBlock Text="{x:Bind ViewModel.Midi.DisplayText, Mode=OneWay}"
                                            FontFamily="Consolas"
                                            VerticalAlignment="Center" />
                             </Border>
                             <Button Grid.Column="1"
-                                    Command="{x:Bind ViewModel.StartMidiLearnCommand}"
-                                    IsEnabled="{x:Bind ViewModel.IsMidiLearnEnabled, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.Midi.StartLearnCommand}"
+                                    IsEnabled="{x:Bind ViewModel.Midi.IsButtonEnabled, Mode=OneWay}"
                                     VerticalAlignment="Stretch">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xEC4F;" FontSize="14" />
-                                    <TextBlock Text="{x:Bind ViewModel.MidiLearnButtonText, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind ViewModel.Midi.ButtonText, Mode=OneWay}" />
                                 </StackPanel>
                             </Button>
                             <Button Grid.Column="2"
-                                    Command="{x:Bind ViewModel.ClearMidiCommand}"
-                                    Visibility="{x:Bind ViewModel.HasMidiTrigger, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.Midi.ClearCommand}"
+                                    Visibility="{x:Bind ViewModel.Midi.HasTrigger, Mode=OneWay}"
                                     VerticalAlignment="Stretch"
                                     ToolTipService.ToolTip="MIDI-Trigger entfernen">
                                 <FontIcon Glyph="&#xE711;" FontSize="12" />
                             </Button>
                         </Grid>
                     </StackPanel>
+
+                    <!-- Hidden unless PadDeck is installed, so users without a DisplayPad never see it. -->
+                    <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.Pad.IsAvailable}">
+                        <TextBlock Text="DisplayPad-Taste (optional, über PadDeck)" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="12,10">
+                                <TextBlock Text="{x:Bind ViewModel.Pad.DisplayText, Mode=OneWay}"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Command="{x:Bind ViewModel.Pad.StartLearnCommand}"
+                                    IsEnabled="{x:Bind ViewModel.Pad.IsButtonEnabled, Mode=OneWay}"
+                                    VerticalAlignment="Stretch">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE80A;" FontSize="14" />
+                                    <TextBlock Text="{x:Bind ViewModel.Pad.ButtonText, Mode=OneWay}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    Command="{x:Bind ViewModel.Pad.ClearCommand}"
+                                    Visibility="{x:Bind ViewModel.Pad.HasTrigger, Mode=OneWay}"
+                                    VerticalAlignment="Stretch"
+                                    ToolTipService.ToolTip="DisplayPad-Taste freigeben">
+                                <FontIcon Glyph="&#xE711;" FontSize="12" />
+                            </Button>
+                        </Grid>
+                        <TextBlock Text="{x:Bind ViewModel.Pad.Hint, Mode=OneWay}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
-            <!-- Aktion: Baustein-Makro -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Aktion" Style="{ThemeResource BodyStrongTextBlockStyle}" />
@@ -133,42 +172,40 @@
                 </StackPanel>
             </Border>
 
-            <!-- Fenster-Optionen -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Fenster-Optionen" Style="{ThemeResource BodyStrongTextBlockStyle}" />
 
-                    <RadioButtons SelectedIndex="{x:Bind ViewModel.WindowModeIndex, Mode=TwoWay}">
+                    <RadioButtons SelectedIndex="{x:Bind ViewModel.Window.ModeIndex, Mode=TwoWay}">
                         <RadioButton Content="Keine Beschränkung" />
                         <RadioButton Content="Nur bei aktivem Fenster auslösen" />
                         <RadioButton Content="Tasten an Hintergrund-Fenster senden" />
                     </RadioButtons>
 
                     <StackPanel Spacing="12"
-                                Visibility="{x:Bind ViewModel.IsWindowTargetVisible, Mode=OneWay}">
+                                Visibility="{x:Bind ViewModel.Window.IsTargetVisible, Mode=OneWay}">
                         <TextBox Header="Prozessname"
-                                 Text="{x:Bind ViewModel.TargetProcessName, Mode=TwoWay}"
+                                 Text="{x:Bind ViewModel.Window.ProcessName, Mode=TwoWay}"
                                  PlaceholderText="z.B. notepad, chrome (ohne .exe)" />
                         <TextBox Header="Fenstertitel (optional)"
-                                 Text="{x:Bind ViewModel.TargetWindowTitle, Mode=TwoWay}"
+                                 Text="{x:Bind ViewModel.Window.WindowTitle, Mode=TwoWay}"
                                  PlaceholderText="z.B. *Editor* (* als Wildcard)" />
-                        <Button Command="{x:Bind ViewModel.CaptureWindowCommand}"
-                                IsEnabled="{x:Bind Not(ViewModel.IsCapturingWindow), Mode=OneWay}">
+                        <Button Command="{x:Bind ViewModel.Window.CaptureCommand}"
+                                IsEnabled="{x:Bind Not(ViewModel.Window.IsCapturing), Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon Glyph="&#xE78B;" FontSize="14" />
-                                <TextBlock Text="{x:Bind ViewModel.CaptureWindowButtonText, Mode=OneWay}" />
+                                <TextBlock Text="{x:Bind ViewModel.Window.ButtonText, Mode=OneWay}" />
                             </StackPanel>
                         </Button>
                         <InfoBar Severity="Informational"
                                  Title="Fenster erfassen"
                                  Message="Wechsle innerhalb von 3 Sekunden zum gewünschten Fenster."
-                                 IsOpen="{x:Bind ViewModel.IsCapturingWindow, Mode=OneWay}"
+                                 IsOpen="{x:Bind ViewModel.Window.IsCapturing, Mode=OneWay}"
                                  IsClosable="False" />
                     </StackPanel>
                 </StackPanel>
             </Border>
 
-            <!-- Aktionen -->
             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                 <Button Content="Abbrechen"
                         MinWidth="120"

@@ -9,6 +9,7 @@
                  Text="{x:Bind ViewModel.Url, Mode=TwoWay}"
                  PlaceholderText="https://api.example.com/webhook" />
 
+        <!-- The item order must match the HttpMethodType enum. -->
         <ComboBox Header="HTTP-Methode"
                   HorizontalAlignment="Stretch"
                   SelectedIndex="{x:Bind ViewModel.MethodIndex, Mode=TwoWay}">
@@ -19,6 +20,7 @@
             <ComboBoxItem Content="PATCH" />
         </ComboBox>
 
+        <!-- The item order must match WebhookEditorViewModel.ContentTypes. -->
         <ComboBox Header="Content-Type"
                   HorizontalAlignment="Stretch"
                   SelectedIndex="{x:Bind ViewModel.ContentTypeIndex, Mode=TwoWay}">

@@ -1,17 +1,30 @@
 namespace HotKeyManager.Models;
 
+/// <summary>Types a text character by character.</summary>
 public class SendTextAction : ActionBase
 {
+    private const int MaxDescriptionLength = 30;
+    private const int DefaultCharDelayMs = 5;
+
     public override ActionType Type => ActionType.SendText;
+
     public override string DisplayName => "Text senden";
-    public override string Description => string.IsNullOrEmpty(Text) 
-        ? "(leer)" 
-        : Text.Length > 30 
-            ? Text[..30] + "..." 
-            : Text;
-    
+
+    public override string Description
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(this.Text))
+            {
+                return "(leer)";
+            }
+
+            return this.Text.Length > MaxDescriptionLength ? this.Text[..MaxDescriptionLength] + "..." : this.Text;
+        }
+    }
+
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Verzoegerung zwischen den Zeichen in Millisekunden (Tippgeschwindigkeit).</summary>
-    public int CharDelayMs { get; set; } = 5;
+    /// <summary>Pause between characters in milliseconds (typing speed).</summary>
+    public int CharDelayMs { get; set; } = DefaultCharDelayMs;
 }

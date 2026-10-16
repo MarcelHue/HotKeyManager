@@ -18,10 +18,13 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- Version wird im Release-Workflow aus dem Git-Tag ueberschrieben (-p:Version=x.y.z) -->
-    <Version>1.8.1</Version>
+    <Version>1.9.0</Version>
 
     <!-- Eigener Main-Einstiegspunkt in Program.cs (Velopack muss vor dem XAML-Start laufen) -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+
+    <!-- Code style rules from .editorconfig are build errors (since 2026-10-15). -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>

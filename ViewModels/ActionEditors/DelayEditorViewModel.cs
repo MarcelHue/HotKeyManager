@@ -3,26 +3,37 @@ using HotKeyManager.Models;
 
 namespace HotKeyManager.ViewModels.ActionEditors;
 
-/// <summary>Editor fuer den Verzoegerungs-Baustein (nur innerhalb von Makros angeboten).</summary>
+/// <summary>Editor for the delay block, which is only offered inside macros.</summary>
 public partial class DelayEditorViewModel : ActionEditorViewModelBase
 {
-    public override string DisplayName => "Verzögerung";
-    public override ActionType Type => ActionType.Delay;
+    private const int DefaultDurationMs = 500;
+
+    // Must match NumberBox.Maximum in DelayEditorView.
+    private const int MaxDurationMs = 600_000;
 
     [ObservableProperty]
-    private double _durationMs = 500;
+    private double durationMs = DefaultDurationMs;
 
+    /// <inheritdoc />
+    public override string DisplayName => "Verzögerung";
+
+    /// <inheritdoc />
+    public override ActionType Type => ActionType.Delay;
+
+    /// <inheritdoc />
     public override void LoadFrom(ActionBase action)
     {
-        if (action is not DelayAction delay) return;
-        DurationMs = delay.DurationMs;
+        if (action is not DelayAction delay)
+        {
+            return;
+        }
+
+        this.DurationMs = delay.DurationMs;
     }
 
-    public override ActionBase BuildAction()
+    /// <inheritdoc />
+    public override ActionBase BuildAction() => new DelayAction
     {
-        return new DelayAction
-        {
-            DurationMs = Math.Clamp((int)DurationMs, 0, 600_000)
-        };
-    }
+        DurationMs = Math.Clamp((int)this.DurationMs, 0, MaxDurationMs)
+    };
 }

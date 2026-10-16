@@ -12,7 +12,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Custom TitleBar (Drag-Area) -->
+        <!-- Custom title bar; also serves as the drag area. -->
         <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent">
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="16,0,0,0" VerticalAlignment="Center">
                 <FontIcon Glyph="&#xE765;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
@@ -44,7 +44,7 @@
             <NavigationView.PaneFooter>
                 <StackPanel Margin="16,0,16,8" Spacing="8">
 
-                    <!-- Permanenter Update-Hinweis, solange ein Update verfuegbar ist -->
+                    <!-- Stays visible as long as an update is available. -->
                     <Button Style="{ThemeResource AccentButtonStyle}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
@@ -112,7 +112,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <!-- Fehler/Warnungen aus dem LogService (auto-dismiss) -->
+                <!-- Errors and warnings from the LogService; closes itself after a few seconds. -->
                 <InfoBar x:Name="ErrorInfoBar"
                          Grid.Row="0"
                          IsOpen="False"

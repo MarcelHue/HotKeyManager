@@ -4,13 +4,14 @@ using Velopack;
 
 namespace HotKeyManager;
 
+/// <summary>Custom entry point so Velopack runs before XAML starts.</summary>
 public static class Program
 {
     [STAThread]
-    private static void Main(string[] args)
+    private static void Main()
     {
-        // Muss als Allererstes laufen: verarbeitet Velopack-Install/Update/Uninstall-Hooks
-        // und beendet den Prozess ggf. sofort wieder (z.B. waehrend eines Updates).
+        // Must run first: handles Velopack install/update/uninstall hooks and may end the
+        // process right away (e.g. during an update).
         VelopackApp.Build().Run();
 
         WinRT.ComWrappersSupport.InitializeComWrappers();

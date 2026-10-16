@@ -3,9 +3,10 @@ using HotKeyManager.Models;
 
 namespace HotKeyManager.ViewModels.ActionEditors;
 
+/// <summary>Editor for the Windows action block (media keys, volume, microphone mute).</summary>
 public partial class SystemEditorViewModel : ActionEditorViewModelBase
 {
-    /// <summary>Reihenfolge muss zu den ComboBox-Eintraegen in SystemEditorView passen.</summary>
+    // The order must match the ComboBox items in SystemEditorView.
     private static readonly SystemActionKind[] Kinds =
     {
         SystemActionKind.PlayPause,
@@ -20,25 +21,30 @@ public partial class SystemEditorViewModel : ActionEditorViewModelBase
         SystemActionKind.MicrophoneMuteOff
     };
 
+    [ObservableProperty]
+    private int kindIndex;
+
+    /// <inheritdoc />
     public override string DisplayName => "Windows-Aktion";
+
+    /// <inheritdoc />
     public override ActionType Type => ActionType.System;
 
-    [ObservableProperty]
-    private int _kindIndex;
-
+    /// <inheritdoc />
     public override void LoadFrom(ActionBase action)
     {
-        if (action is not SystemAction system) return;
+        if (action is not SystemAction system)
+        {
+            return;
+        }
 
         var index = Array.IndexOf(Kinds, system.Kind);
-        KindIndex = index >= 0 ? index : 0;
+        this.KindIndex = index >= 0 ? index : 0;
     }
 
-    public override ActionBase BuildAction()
+    /// <inheritdoc />
+    public override ActionBase BuildAction() => new SystemAction
     {
-        return new SystemAction
-        {
-            Kind = Kinds[Math.Clamp(KindIndex, 0, Kinds.Length - 1)]
-        };
-    }
+        Kind = Kinds[Math.Clamp(this.KindIndex, 0, Kinds.Length - 1)]
+    };
 }

@@ -1,22 +1,14 @@
 namespace HotKeyManager.Models;
 
-/// <summary>
-/// Definiert den Typ eines Tastenevents in einer Tastensequenz.
-/// </summary>
+/// <summary>What a single entry of a key sequence does with its key.</summary>
 public enum KeyEventType
 {
-    /// <summary>
-    /// Automatisch Down + Up (Simple Mode) - Standard-Verhalten
-    /// </summary>
+    /// <summary>Press and release the key (default, simple mode).</summary>
     KeyPress,
-    
-    /// <summary>
-    /// Nur Taste drücken (für Kombinationen im Advanced Mode)
-    /// </summary>
+
+    /// <summary>Only press the key, to build combinations in advanced mode.</summary>
     KeyDown,
-    
-    /// <summary>
-    /// Nur Taste loslassen (für Kombinationen im Advanced Mode)
-    /// </summary>
+
+    /// <summary>Only release the key, to build combinations in advanced mode.</summary>
     KeyUp
 }

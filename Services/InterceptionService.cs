@@ -1,24 +1,40 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using InputInterceptorNS;
 
 namespace HotKeyManager.Services;
 
 /// <summary>
-/// Service für Kernel-Mode Tastatur-Injektion mittels des Interception-Treibers.
-/// Ermöglicht das Senden von Tasten ohne LLKHF_INJECTED-Flag.
+/// Kernel-mode keyboard injection through the Interception driver.
+/// Keys sent this way carry no LLKHF_INJECTED flag, so apps that ignore synthetic input still see them.
 /// </summary>
 public class InterceptionService : IDisposable
 {
-    private KeyboardHook? _keyboardHook;
-    private bool _isRunning;
-    private bool _disposed;
+    private const uint MAPVK_VK_TO_VSC = 0;
 
-    /// <summary>
-    /// Prüft ob der Interception-Treiber installiert ist (in Registry eingetragen).
-    /// </summary>
+    // Must match the command line switches handled in App.xaml.cs.
+    private const string InstallDriverArgument = "--install-driver";
+    private const string UninstallDriverArgument = "--uninstall-driver";
+
+    private KeyboardHook? keyboardHook;
+    private bool disposed;
+
+    ~InterceptionService() => this.Dispose();
+
+    /// <summary>True after <see cref="Start"/> succeeded.</summary>
+    public bool IsRunning { get; private set; }
+
+    /// <summary>True when the kernel driver is active and keys can be sent.</summary>
+    public bool CanSendKernel => this.IsRunning && (this.keyboardHook is not null);
+
+    /// <summary>Checks whether the Interception driver is installed (registered in the registry).</summary>
     public static bool IsDriverInstalled()
     {
-        try { return InputInterceptor.CheckDriverInstalled(); }
+        try
+        {
+            return InputInterceptor.CheckDriverInstalled();
+        }
         catch (Exception ex)
         {
             App.Current.LogService.Warning("Fehler bei Treiber-Status Pruefung", ex);
@@ -26,15 +42,12 @@ public class InterceptionService : IDisposable
         }
     }
 
-    /// <summary>
-    /// Prüft ob der Interception-Treiber aktiv ist (geladen und funktionsfähig).
-    /// </summary>
+    /// <summary>Checks whether the Interception driver is loaded and working.</summary>
     public static bool IsDriverActive()
     {
         try
         {
-            if (!IsDriverInstalled()) return false;
-            return InputInterceptor.Initialize();
+            return IsDriverInstalled() && InputInterceptor.Initialize();
         }
         catch (Exception ex)
         {
@@ -43,49 +56,21 @@ public class InterceptionService : IDisposable
         }
     }
 
-    /// <summary>
-    /// Startet einen Kindprozess mit Admin-Rechten für die Treiber-Installation/Deinstallation.
-    /// </summary>
-    private static async Task<bool> RunInstallAsAdminAsync(bool install)
-    {
-        var exePath = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(exePath)) return false;
-
-        var startInfo = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = exePath,
-            Arguments = install ? "--install-driver" : "--uninstall-driver",
-            Verb = "runas",
-            UseShellExecute = true
-        };
-
-        try
-        {
-            var process = System.Diagnostics.Process.Start(startInfo);
-            if (process != null) { await process.WaitForExitAsync(); return true; }
-            return false;
-        }
-        catch (Exception ex)
-        {
-            App.Current.LogService.Warning("Admin-Prozess konnte nicht gestartet werden", ex);
-            return false;
-        }
-    }
-
+    /// <summary>Installs the driver, elevating through a child process if needed.</summary>
+    /// <returns>Whether it worked and a German message for the user.</returns>
     public static async Task<(bool Success, string Message)> InstallDriverAsync()
     {
         try
         {
-            if (IsDriverInstalled()) return (true, "Treiber ist bereits installiert.");
+            if (IsDriverInstalled())
+            {
+                return (true, "Treiber ist bereits installiert.");
+            }
 
-            if (IsRunningAsAdmin())
-                await Task.Run(() =>
-                {
-                    try { InputInterceptor.InstallDriver(); }
-                    catch (Exception ex) { App.Current.LogService.Error("Treiber-Installation fehlgeschlagen", ex); }
-                });
-            else if (!await RunInstallAsAdminAsync(install: true))
+            if (!await RunDriverSetupAsync(install: true))
+            {
                 return (false, "Installation abgebrochen. Administrator-Rechte wurden verweigert.");
+            }
 
             return IsDriverInstalled()
                 ? (true, "Treiber wurde installiert. Bitte starte den Computer neu.")
@@ -98,20 +83,21 @@ public class InterceptionService : IDisposable
         }
     }
 
+    /// <summary>Uninstalls the driver, elevating through a child process if needed.</summary>
+    /// <returns>Whether it worked and a German message for the user.</returns>
     public static async Task<(bool Success, string Message)> UninstallDriverAsync()
     {
         try
         {
-            if (!IsDriverInstalled()) return (true, "Treiber ist nicht installiert.");
+            if (!IsDriverInstalled())
+            {
+                return (true, "Treiber ist nicht installiert.");
+            }
 
-            if (IsRunningAsAdmin())
-                await Task.Run(() =>
-                {
-                    try { InputInterceptor.UninstallDriver(); }
-                    catch (Exception ex) { App.Current.LogService.Error("Treiber-Deinstallation fehlgeschlagen", ex); }
-                });
-            else if (!await RunInstallAsAdminAsync(install: false))
+            if (!await RunDriverSetupAsync(install: false))
+            {
                 return (false, "Deinstallation abgebrochen. Administrator-Rechte wurden verweigert.");
+            }
 
             return !IsDriverInstalled()
                 ? (true, "Treiber wurde deinstalliert. Bitte starte den Computer neu.")
@@ -124,13 +110,13 @@ public class InterceptionService : IDisposable
         }
     }
 
+    /// <summary>True when the current process runs elevated.</summary>
     public static bool IsRunningAsAdmin()
     {
         try
         {
-            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-            return new System.Security.Principal.WindowsPrincipal(identity)
-                .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+            using var identity = WindowsIdentity.GetCurrent();
+            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
         }
         catch (Exception ex)
         {
@@ -139,18 +125,24 @@ public class InterceptionService : IDisposable
         }
     }
 
-    /// <summary>
-    /// Startet den Service (aktiviert Kernel-Injektion).
-    /// </summary>
+    /// <summary>Opens the driver context for kernel injection.</summary>
+    /// <returns>False when the driver is not active or the context could not be opened.</returns>
     public bool Start()
     {
-        if (_isRunning) return true;
-        if (!IsDriverActive()) return false;
+        if (this.IsRunning)
+        {
+            return true;
+        }
+
+        if (!IsDriverActive())
+        {
+            return false;
+        }
 
         try
         {
-            _keyboardHook = new KeyboardHook(PassThrough);
-            _isRunning = true;
+            this.keyboardHook = new KeyboardHook(PassThrough);
+            this.IsRunning = true;
             App.Current.LogService.Info("Interception-Kernel-Service gestartet");
             return true;
         }
@@ -161,56 +153,117 @@ public class InterceptionService : IDisposable
         }
     }
 
-    private static void PassThrough(ref KeyStroke keyStroke) { }
-
+    /// <summary>Releases the driver context.</summary>
     public void Stop()
     {
-        if (!_isRunning) return;
-        _keyboardHook?.Dispose();
-        _keyboardHook = null;
-        _isRunning = false;
+        if (!this.IsRunning)
+        {
+            return;
+        }
+
+        this.keyboardHook?.Dispose();
+        this.keyboardHook = null;
+        this.IsRunning = false;
+    }
+
+    /// <summary>Presses a key through the driver.</summary>
+    public void KernelSimulateKeyDown(int virtualKeyCode) =>
+        this.keyboardHook?.SimulateKeyDown(ToKeyCode(virtualKeyCode));
+
+    /// <summary>Releases a key through the driver.</summary>
+    public void KernelSimulateKeyUp(int virtualKeyCode) => this.keyboardHook?.SimulateKeyUp(ToKeyCode(virtualKeyCode));
+
+    /// <summary>Stops the service.</summary>
+    public void Dispose()
+    {
+        if (this.disposed)
+        {
+            return;
+        }
+
+        this.Stop();
+        this.disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     [DllImport("user32.dll")]
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
-    private const uint MAPVK_VK_TO_VSC = 0;
 
-    public bool IsRunning => _isRunning;
-
-    /// <summary>True wenn der Kernel-Treiber aktiv ist und Tasten gesendet werden können.</summary>
-    public bool CanSendKernel => _isRunning && _keyboardHook != null;
-
-    public void KernelSimulateKeyDown(int virtualKeyCode)
+    // The driver works with scan codes. Keys without one keep the virtual key code as a best effort.
+    private static KeyCode ToKeyCode(int virtualKeyCode)
     {
-        if (_keyboardHook == null) return;
         var scanCode = (int)MapVirtualKey((uint)virtualKeyCode, MAPVK_VK_TO_VSC);
-        if (scanCode == 0) scanCode = virtualKeyCode;
-        _keyboardHook.SimulateKeyDown((KeyCode)scanCode);
+        return (KeyCode)(scanCode == 0 ? virtualKeyCode : scanCode);
     }
 
-    public void KernelSimulateKeyUp(int virtualKeyCode)
+    // The hook is only needed to inject keys; every real key stroke passes through unchanged.
+    private static void PassThrough(ref KeyStroke keyStroke)
     {
-        if (_keyboardHook == null) return;
-        var scanCode = (int)MapVirtualKey((uint)virtualKeyCode, MAPVK_VK_TO_VSC);
-        if (scanCode == 0) scanCode = virtualKeyCode;
-        _keyboardHook.SimulateKeyUp((KeyCode)scanCode);
     }
 
-    public void KernelSimulateKeyPress(int virtualKeyCode, int delayMs = 10)
+    private static async Task<bool> RunDriverSetupAsync(bool install)
     {
-        if (_keyboardHook == null) return;
-        var scanCode = (int)MapVirtualKey((uint)virtualKeyCode, MAPVK_VK_TO_VSC);
-        if (scanCode == 0) scanCode = virtualKeyCode;
-        _keyboardHook.SimulateKeyPress((KeyCode)scanCode, delayMs);
+        if (!IsRunningAsAdmin())
+        {
+            return await RunSetupAsAdminAsync(install);
+        }
+
+        await Task.Run(() => RunSetupInProcess(install));
+        return true;
     }
 
-    public void Dispose()
+    private static void RunSetupInProcess(bool install)
     {
-        if (_disposed) return;
-        Stop();
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        try
+        {
+            if (install)
+            {
+                InputInterceptor.InstallDriver();
+            }
+            else
+            {
+                InputInterceptor.UninstallDriver();
+            }
+        }
+        catch (Exception ex)
+        {
+            var message = install ? "Treiber-Installation fehlgeschlagen" : "Treiber-Deinstallation fehlgeschlagen";
+            App.Current.LogService.Error(message, ex);
+        }
     }
 
-    ~InterceptionService() => Dispose();
+    // Driver setup needs admin rights; the app restarts itself elevated for just that step.
+    private static async Task<bool> RunSetupAsAdminAsync(bool install)
+    {
+        var exePath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(exePath))
+        {
+            return false;
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = exePath,
+            Arguments = install ? InstallDriverArgument : UninstallDriverArgument,
+            Verb = "runas",
+            UseShellExecute = true
+        };
+
+        try
+        {
+            using var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return false;
+            }
+
+            await process.WaitForExitAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            App.Current.LogService.Warning("Admin-Prozess konnte nicht gestartet werden", ex);
+            return false;
+        }
+    }
 }

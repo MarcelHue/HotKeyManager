@@ -4,155 +4,97 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace HotKeyManager.ViewModels;
 
+/// <summary>View model of the settings page; every change is saved to the configuration right away.</summary>
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly ConfigurationService _configService;
-    private readonly AutoStartService _autoStartService;
-    private bool _isLoading;
+    private const string InstallGlyph = "\uE9F5";
+    private const string UninstallGlyph = "\uE74D";
+    private const string UninstallText = "Deinstallieren";
+    private const int DefaultThemeIndex = 2;
+    private const int DefaultLogLevelIndex = 2;
+
+    // Stored setting values; the order must match the radio buttons and combo box items in SettingsPage.
+    private static readonly string[] ThemeNames = { "light", "dark", "system" };
+    private static readonly string[] LogLevelNames = { "Debug", "Info", "Warning", "Error" };
+
+    private readonly ConfigurationService configService;
+    private readonly AutoStartService autoStartService;
+    private bool isLoading;
 
     [ObservableProperty]
-    private bool _autoStart;
+    private bool autoStart;
 
     [ObservableProperty]
-    private bool _minimizeToTray;
+    private bool minimizeToTray;
 
     [ObservableProperty]
-    private bool _startMinimized;
+    private bool startMinimized;
 
-    /// <summary>0 = Hell, 1 = Dunkel, 2 = System.</summary>
+    /// <summary>0 = light, 1 = dark, 2 = system.</summary>
     [ObservableProperty]
-    private int _themeIndex;
+    private int themeIndex;
 
     /// <summary>0 = Debug, 1 = Info, 2 = Warning, 3 = Error.</summary>
     [ObservableProperty]
-    private int _logLevelIndex = 2;
+    private int logLevelIndex = DefaultLogLevelIndex;
 
     [ObservableProperty]
-    private InfoBarSeverity _driverSeverity = InfoBarSeverity.Informational;
+    private InfoBarSeverity driverSeverity = InfoBarSeverity.Informational;
 
     [ObservableProperty]
-    private string _driverStatusMessage = "Wird geprüft...";
+    private string driverStatusMessage = "Wird geprüft...";
 
     [ObservableProperty]
-    private string _driverButtonText = "Installieren";
+    private string driverButtonText = "Installieren";
 
     [ObservableProperty]
-    private string _driverButtonGlyph = "";
+    private string driverButtonGlyph = InstallGlyph;
 
     [ObservableProperty]
-    private bool _isDriverButtonEnabled = true;
+    private bool isDriverButtonEnabled = true;
 
-    public bool IsDriverInstalled => InterceptionService.IsDriverInstalled();
-
-    public string VersionText => $"Version {App.Current.UpdateService.CurrentVersion}";
-
+    /// <summary>Creates the view model; services that are not passed in default to the app-wide instances.</summary>
     public SettingsViewModel(
         ConfigurationService? configService = null,
         AutoStartService? autoStartService = null)
     {
-        _configService = configService ?? App.Current.ConfigurationService;
-        _autoStartService = autoStartService ?? App.Current.AutoStartService;
+        this.configService = configService ?? App.Current.ConfigurationService;
+        this.autoStartService = autoStartService ?? App.Current.AutoStartService;
     }
 
-    /// <summary>Laedt die Werte aus der Konfiguration, ohne die Change-Handler auszuloesen.</summary>
+    /// <summary>True when the Interception driver is installed (it may still need a restart).</summary>
+    public bool IsDriverInstalled => InterceptionService.IsDriverInstalled();
+
+    /// <summary>Version line for the about card.</summary>
+    public string VersionText => $"Version {App.Current.UpdateService.CurrentVersion}";
+
+    /// <summary>Loads the values from the configuration without triggering the change handlers.</summary>
     public void Load()
     {
-        _isLoading = true;
+        this.isLoading = true;
         try
         {
-            var settings = _configService.Configuration.Settings;
-            AutoStart = _autoStartService.IsAutoStartEnabled;
-            MinimizeToTray = settings.MinimizeToTray;
-            StartMinimized = settings.StartMinimized;
-            ThemeIndex = settings.Theme?.ToLowerInvariant() switch
-            {
-                "light" => 0,
-                "dark" => 1,
-                _ => 2
-            };
-            LogLevelIndex = settings.LogLevel?.ToLowerInvariant() switch
-            {
-                "debug" => 0,
-                "info" => 1,
-                "warning" => 2,
-                "error" => 3,
-                _ => 2
-            };
+            var settings = this.configService.Configuration.Settings;
+            this.AutoStart = this.autoStartService.IsAutoStartEnabled;
+            this.MinimizeToTray = settings.MinimizeToTray;
+            this.StartMinimized = settings.StartMinimized;
+            this.ThemeIndex = IndexOfName(ThemeNames, settings.Theme, DefaultThemeIndex);
+            this.LogLevelIndex = IndexOfName(LogLevelNames, settings.LogLevel, DefaultLogLevelIndex);
         }
         finally
         {
-            _isLoading = false;
+            this.isLoading = false;
         }
 
-        RefreshDriverStatus();
+        this.RefreshDriverStatus();
     }
 
-    partial void OnAutoStartChanged(bool value)
-    {
-        if (_isLoading) return;
-
-        if (!_autoStartService.SetAutoStart(value))
-        {
-            // Registry-Eintrag fehlgeschlagen -> Toggle zuruecksetzen
-            _isLoading = true;
-            AutoStart = !value;
-            _isLoading = false;
-        }
-
-        _configService.Configuration.Settings.RunAtStartup = AutoStart;
-        _ = _configService.SaveAsync();
-    }
-
-    partial void OnMinimizeToTrayChanged(bool value)
-    {
-        if (_isLoading) return;
-        _configService.Configuration.Settings.MinimizeToTray = value;
-        _ = _configService.SaveAsync();
-    }
-
-    partial void OnStartMinimizedChanged(bool value)
-    {
-        if (_isLoading) return;
-        _configService.Configuration.Settings.StartMinimized = value;
-        _ = _configService.SaveAsync();
-    }
-
-    partial void OnThemeIndexChanged(int value)
-    {
-        if (_isLoading) return;
-
-        var theme = value switch
-        {
-            0 => "light",
-            1 => "dark",
-            _ => "system"
-        };
-        _configService.Configuration.Settings.Theme = theme;
-        ThemeService.Apply(theme);
-        _ = _configService.SaveAsync();
-    }
-
-    partial void OnLogLevelIndexChanged(int value)
-    {
-        if (_isLoading) return;
-
-        var level = value switch
-        {
-            0 => "Debug",
-            1 => "Info",
-            3 => "Error",
-            _ => "Warning"
-        };
-        _configService.Configuration.Settings.LogLevel = level;
-        App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(level);
-        _ = _configService.SaveAsync();
-    }
-
-    /// <summary>
-    /// Treiber-Status ermitteln. Laeuft der InterceptionService bereits, wird der Status
-    /// direkt abgelesen — IsDriverActive() (InputInterceptor.Initialize) darf dann nicht
-    /// erneut aufgerufen werden (zweiter Interception-Context -> Access Violation).
-    /// </summary>
+    /// <summary>Determines the driver status and updates the driver card and the shell status.</summary>
+    /// <remarks>
+    /// While the InterceptionService runs, its state is read directly. IsDriverActive()
+    /// (InputInterceptor.Initialize) must not be called again then: a second Interception context
+    /// causes an access violation.
+    /// </remarks>
     public void RefreshDriverStatus()
     {
         var installed = InterceptionService.IsDriverInstalled();
@@ -161,57 +103,141 @@ public partial class SettingsViewModel : ObservableObject
 
         if (active)
         {
-            DriverSeverity = InfoBarSeverity.Success;
-            DriverStatusMessage = "Treiber ist aktiv und einsatzbereit.";
-            DriverButtonText = "Deinstallieren";
-            DriverButtonGlyph = "";
+            this.DriverSeverity = InfoBarSeverity.Success;
+            this.DriverStatusMessage = "Treiber ist aktiv und einsatzbereit.";
+            this.DriverButtonText = UninstallText;
+            this.DriverButtonGlyph = UninstallGlyph;
         }
         else if (installed)
         {
-            DriverSeverity = InfoBarSeverity.Warning;
-            DriverStatusMessage = "Treiber ist installiert, aber ein Neustart ist erforderlich.";
-            DriverButtonText = "Deinstallieren";
-            DriverButtonGlyph = "";
+            this.DriverSeverity = InfoBarSeverity.Warning;
+            this.DriverStatusMessage = "Treiber ist installiert, aber ein Neustart ist erforderlich.";
+            this.DriverButtonText = UninstallText;
+            this.DriverButtonGlyph = UninstallGlyph;
         }
         else
         {
-            DriverSeverity = InfoBarSeverity.Informational;
-            DriverStatusMessage = "Treiber ist nicht installiert. Für Kernel-Mode Injektion wird er benötigt.";
-            DriverButtonText = "Installieren";
-            DriverButtonGlyph = "";
+            this.DriverSeverity = InfoBarSeverity.Informational;
+            this.DriverStatusMessage =
+                "Treiber ist nicht installiert. Für Kernel-Mode Injektion wird er benötigt.";
+            this.DriverButtonText = "Installieren";
+            this.DriverButtonGlyph = InstallGlyph;
         }
 
-        // Shell-Statusanzeige mitziehen
-        (App.Current.MainWindow as MainWindow)?.ViewModel.RefreshStatus();
+        if (App.Current.MainWindow is MainWindow mainWindow)
+        {
+            mainWindow.ViewModel.RefreshStatus();
+        }
     }
 
+    /// <summary>Installs the Interception driver and starts it if Windows loads it without a restart.</summary>
     public async Task<(bool Success, string Message)> InstallDriverAsync()
     {
-        IsDriverButtonEnabled = false;
-        DriverButtonText = "Wird installiert...";
+        this.IsDriverButtonEnabled = false;
+        this.DriverButtonText = "Wird installiert...";
 
         var result = await InterceptionService.InstallDriverAsync();
 
-        // Manche Systeme laden den Treiber ohne Neustart — dann direkt starten
+        // Some systems load the driver without a restart.
         if (result.Success && InterceptionService.IsDriverActive())
         {
             App.Current.InterceptionService.Start();
         }
 
-        IsDriverButtonEnabled = true;
-        RefreshDriverStatus();
+        this.IsDriverButtonEnabled = true;
+        this.RefreshDriverStatus();
         return result;
     }
 
+    /// <summary>Uninstalls the Interception driver.</summary>
     public async Task<(bool Success, string Message)> UninstallDriverAsync()
     {
-        IsDriverButtonEnabled = false;
-        DriverButtonText = "Wird deinstalliert...";
+        this.IsDriverButtonEnabled = false;
+        this.DriverButtonText = "Wird deinstalliert...";
 
         var result = await InterceptionService.UninstallDriverAsync();
 
-        IsDriverButtonEnabled = true;
-        RefreshDriverStatus();
+        this.IsDriverButtonEnabled = true;
+        this.RefreshDriverStatus();
         return result;
+    }
+
+    private static int IndexOfName(string[] names, string? name, int defaultIndex)
+    {
+        var index = Array.FindIndex(names, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 ? index : defaultIndex;
+    }
+
+    private static string NameAtIndex(string[] names, int index, int defaultIndex)
+    {
+        var isInRange = (index >= 0) && (index < names.Length);
+        return names[isInRange ? index : defaultIndex];
+    }
+
+    partial void OnAutoStartChanged(bool value)
+    {
+        if (this.isLoading)
+        {
+            return;
+        }
+
+        if (!this.autoStartService.SetAutoStart(value))
+        {
+            // The registry write failed: flip the toggle back without running this handler again.
+            this.isLoading = true;
+            this.AutoStart = !value;
+            this.isLoading = false;
+        }
+
+        this.configService.Configuration.Settings.RunAtStartup = this.AutoStart;
+        _ = this.configService.SaveAsync();
+    }
+
+    partial void OnMinimizeToTrayChanged(bool value)
+    {
+        if (this.isLoading)
+        {
+            return;
+        }
+
+        this.configService.Configuration.Settings.MinimizeToTray = value;
+        _ = this.configService.SaveAsync();
+    }
+
+    partial void OnStartMinimizedChanged(bool value)
+    {
+        if (this.isLoading)
+        {
+            return;
+        }
+
+        this.configService.Configuration.Settings.StartMinimized = value;
+        _ = this.configService.SaveAsync();
+    }
+
+    partial void OnThemeIndexChanged(int value)
+    {
+        if (this.isLoading)
+        {
+            return;
+        }
+
+        var theme = NameAtIndex(ThemeNames, value, DefaultThemeIndex);
+        this.configService.Configuration.Settings.Theme = theme;
+        ThemeService.Apply(theme);
+        _ = this.configService.SaveAsync();
+    }
+
+    partial void OnLogLevelIndexChanged(int value)
+    {
+        if (this.isLoading)
+        {
+            return;
+        }
+
+        var level = NameAtIndex(LogLevelNames, value, DefaultLogLevelIndex);
+        this.configService.Configuration.Settings.LogLevel = level;
+        App.Current.LogService.MinLogLevel = LogService.ParseLogLevel(level);
+        _ = this.configService.SaveAsync();
     }
 }
