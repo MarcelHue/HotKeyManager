@@ -85,18 +85,6 @@
                                                FontSize="13" />
                                 </StackPanel>
                             </StackPanel>
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Kernel-Treiber"
-                                           FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Ellipse Width="8" Height="8"
-                                             Fill="{x:Bind ViewModel.DriverStatusBrush, Mode=OneWay}"
-                                             VerticalAlignment="Center" />
-                                    <TextBlock Text="{x:Bind ViewModel.DriverStatusText, Mode=OneWay}"
-                                               FontSize="13" />
-                                </StackPanel>
-                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <TextBlock Text="{x:Bind ViewModel.VersionText}"

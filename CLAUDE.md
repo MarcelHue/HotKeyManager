@@ -14,7 +14,6 @@ Windows-native application for managing global hotkeys system-wide. Users define
 - **Key NuGet packages:**
   - `H.NotifyIcon.WinUI` — system tray
   - `CommunityToolkit.Mvvm` — MVVM (ObservableObject, [ObservableProperty], [RelayCommand])
-  - `InputInterceptor` — kernel-mode keyboard driver
   - `Velopack` — auto-update via GitHub Releases
   - `System.Text.Json` — config serialization
 
@@ -53,7 +52,6 @@ Windows-native application for managing global hotkeys system-wide. Users define
 |---|---|
 | `HotkeyManagerService` | Orchestrates hotkey detection → action execution; `HotkeysChanged` event; `SaveChanges()` persists without event |
 | `KeyboardHookService` | Win32 low-level keyboard hook (user-mode) |
-| `InterceptionService` | Kernel-mode hook via InputInterceptor driver |
 | `ActionExecutor` | Runs all action types |
 | `ConfigurationService` | Load/save `%APPDATA%/HotKeyManager/config.json` |
 | `AutoStartService` | Windows startup registry integration (path refreshed on every app start) |
@@ -77,7 +75,7 @@ Windows-native application for managing global hotkeys system-wide. Users define
 
 **Since v1.3.0 `MacroAction` is the ONLY top-level action type** — the editor offers no type dropdown anymore; all other types exist solely as macro steps. `LegacyActionMigration.WrapLegacyActions` wraps old single actions into one-step macros on app start and on config import; the editor also wraps transparently when loading an unmigrated hotkey.
 
-**Macro editor has two modes** (`MacroEditorViewModel`): *Einfach* (default) exposes fixed fields — key before / text / key after (`KeyCaptureField` is the reusable capture control); *Erweitert* is the full reorderable block list. `TryLoadSimple` decides the mode when loading: a macro qualifies as simple if it has ≤3 steps, exactly one `SendTextAction`, and the surrounding steps are single-key `KeySequenceAction`s without kernel injection. Switching modes migrates the content both ways.
+**Macro editor has two modes** (`MacroEditorViewModel`): *Einfach* (default) exposes fixed fields — key before / text / key after (`KeyCaptureField` is the reusable capture control); *Erweitert* is the full reorderable block list. `TryLoadSimple` decides the mode when loading: a macro qualifies as simple if it has ≤3 steps, exactly one `SendTextAction`, and the surrounding steps are single-key `KeySequenceAction`s. Switching modes migrates the content both ways.
 
 **Duplicating a hotkey**: list passes `EditorNavArgs { Hotkey = deepCopy, IsDuplicate = true }`; the editor loads everything but clears both triggers and saves as a new hotkey. Deep copies go through `Helpers/ActionCloner` (JSON roundtrip, keeps `$type` polymorphism).
 
@@ -131,10 +129,15 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 
 **Auto-update:** the installed app checks GitHub Releases on startup and every 15 min (`UpdateService`; persistent update button in the NavigationView pane footer); manual check in Settings. Update checks are a no-op when running from a build directory (`UpdateManager.IsInstalled == false`).
 
+## Git
+
+- Work directly on `main` in `C:\Users\Marce\CodeProjects\HotKeyManager`.
+- Agents may commit, push and tag releases (`vX.Y.Z`) on their own, without asking (Marcel, 2026-11-25). Bump `<Version>` in the csproj together with the tag.
+
 ## Special Behaviors
 
 - **Unsafe code** is enabled (`AllowUnsafeBlocks=true`) — used for Win32 P/Invoke
-- **Kernel-mode driver** (`--install-driver` / `--uninstall-driver` CLI args) requires admin — app can re-launch itself elevated
+- **No kernel-mode driver.** The Interception driver (`InputInterceptor`, kernel key injection) was removed on purpose in 2026-11: a loaded input filter driver can be flagged by kernel-level anti-cheat in games. Do not bring it back; keys go out via `keybd_event`/`SendInput` (foreground) or `PostMessage` (background window). Old configs may still contain `useKernelInjection`; System.Text.Json ignores it.
 - **Custom Main** in `Program.cs` (`DISABLE_XAML_GENERATED_MAIN`) — Velopack hooks must run before XAML starts
 - **Do not enable `PublishSingleFile`** — incompatible with Velopack packaging
 - **No test suite** — manual testing only; `TestWinUI/` directory exists but is unused
@@ -146,7 +149,7 @@ dotnet build HotKeyManager.csproj -c Debug -p:Platform=x64
 | `HotkeyListPage` | Hotkeys grouped into collapsible folders (`HotkeyDefinition.Group`, one level). Per row: drag handle (drag to reorder / drop onto another folder, **click** for a move menu), trigger badge with a flyout to (re)capture key/MIDI inline, inline rename (double-tap or pencil), toggle, run, folder assign, edit, duplicate, delete. Search disables reordering. Folder header has a menu to rename (also via double-tap on the name) or dissolve the folder. `DragItemsStarting` clears the auto-generated text in the data package and sets an app-private format — otherwise dropping outside the window pastes/searches that text in other apps (e.g. Firefox) |
 | `HotkeyEditorPage` | Create / edit a hotkey (full page, scrolls; key capture + window capture) |
 | `Views/ActionEditors/*` | One UserControl per action type, selected via `ActionEditorTemplateSelector` |
-| `SettingsPage` | Theme, startup/tray, kernel driver, import/export, update check |
+| `SettingsPage` | Theme, startup/tray, logging, import/export, update check |
 
 ## Code style (in force since 2026-10-15)
 

@@ -49,7 +49,7 @@ public sealed partial class MainWindow : Window
         this.Activate();
     }
 
-    /// <summary>Refreshes the hook and driver status in the footer.</summary>
+    /// <summary>Refreshes the hook status in the footer.</summary>
     public void UpdateStatusDisplay() => this.ViewModel.RefreshStatus();
 
     private void SetupWindow()

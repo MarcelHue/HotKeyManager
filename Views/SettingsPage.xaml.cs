@@ -11,7 +11,7 @@ using WinRT.Interop;
 
 namespace HotKeyManager.Views;
 
-/// <summary>Settings page: appearance, startup, logging, driver, configuration file and updates.</summary>
+/// <summary>Settings page: appearance, startup, logging, configuration file and updates.</summary>
 public sealed partial class SettingsPage : Page
 {
     private const string CheckUpdatesText = "Nach Updates suchen";
@@ -132,37 +132,6 @@ public sealed partial class SettingsPage : Page
         this.ViewModel.Load();
 
         await this.ShowMessageAsync("Zurückgesetzt", "Alle Daten wurden gelöscht.");
-    }
-
-    private async void InstallDriver_Click(object sender, RoutedEventArgs e)
-    {
-        if (!this.ViewModel.IsDriverInstalled)
-        {
-            var (installed, installMessage) = await this.ViewModel.InstallDriverAsync();
-            var installTitle = installed ? "Installation erfolgreich" : "Installation fehlgeschlagen";
-            await this.ShowMessageAsync(installTitle, installMessage);
-            return;
-        }
-
-        var confirmDialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            Title = "Treiber deinstallieren?",
-            Content = "Der Interception-Treiber wird deinstalliert. "
-                + "Kernel-Mode Tastatur-Injektion ist danach nicht mehr verfügbar.",
-            PrimaryButtonText = "Deinstallieren",
-            CloseButtonText = "Abbrechen",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        if (await confirmDialog.ShowAsync() != ContentDialogResult.Primary)
-        {
-            return;
-        }
-
-        var (uninstalled, uninstallMessage) = await this.ViewModel.UninstallDriverAsync();
-        var uninstallTitle = uninstalled ? "Deinstallation erfolgreich" : "Deinstallation fehlgeschlagen";
-        await this.ShowMessageAsync(uninstallTitle, uninstallMessage);
     }
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)

@@ -116,41 +116,6 @@
 
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="Kernel-Mode Treiber" Style="{ThemeResource BodyStrongTextBlockStyle}" />
-
-                    <InfoBar IsOpen="True"
-                             IsClosable="False"
-                             Severity="{x:Bind ViewModel.DriverSeverity, Mode=OneWay}"
-                             Title="Treiber-Status"
-                             Message="{x:Bind ViewModel.DriverStatusMessage, Mode=OneWay}" />
-
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Interception-Treiber" />
-                            <TextBlock Text="Ermöglicht Kernel-Mode Tasteninjektion ohne LLKHF_INJECTED Flag"
-                                       FontSize="12"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                        <Button Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Click="InstallDriver_Click"
-                                IsEnabled="{x:Bind ViewModel.IsDriverButtonEnabled, Mode=OneWay}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="{x:Bind ViewModel.DriverButtonGlyph, Mode=OneWay}" FontSize="14" />
-                                <TextBlock Text="{x:Bind ViewModel.DriverButtonText, Mode=OneWay}" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="16">
                     <TextBlock Text="Konfiguration" Style="{ThemeResource BodyStrongTextBlockStyle}" />
 
                     <Grid ColumnSpacing="16">

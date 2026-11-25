@@ -1,8 +1,6 @@
 using HotKeyManager.Services;
-using InputInterceptorNS;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 
 namespace HotKeyManager;
 
@@ -33,8 +31,6 @@ public partial class App : Application
 
     public KeyboardHookService KeyboardHookService { get; } = new();
 
-    public InterceptionService InterceptionService { get; } = new();
-
     public HotkeyManagerService HotkeyManagerService { get; private set; } = null!;
 
     public ActionExecutor ActionExecutor { get; private set; } = null!;
@@ -55,8 +51,6 @@ public partial class App : Application
     public void ExitApplication()
     {
         this.KeyboardHookService.Stop();
-        this.InterceptionService.Stop();
-        this.InterceptionService.Dispose();
         this.MidiService.Dispose();
         this.PadDeckBridge.Dispose();
         this.LogService.Dispose();
@@ -67,21 +61,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        // Elevated self-start for driver (un)installation: do the job and exit without UI.
-        var commandLine = Environment.GetCommandLineArgs();
-        if (commandLine.Contains("--install-driver"))
-        {
-            this.RunDriverCommand(InputInterceptor.InstallDriver, "Treiber-Installation via CLI fehlgeschlagen");
-            return;
-        }
-
-        if (commandLine.Contains("--uninstall-driver"))
-        {
-            this.RunDriverCommand(InputInterceptor.UninstallDriver, "Treiber-Deinstallation via CLI fehlgeschlagen");
-            return;
-        }
-
-        this.ActionExecutor = new ActionExecutor(this.InterceptionService);
+        this.ActionExecutor = new ActionExecutor();
         this.HotkeyManagerService = new HotkeyManagerService(
             this.KeyboardHookService,
             this.ActionExecutor,
@@ -96,20 +76,6 @@ public partial class App : Application
         this.trayIconService = new TrayIconService();
 
         _ = this.LoadConfigurationAsync();
-    }
-
-    private void RunDriverCommand(Func<bool> command, string errorMessage)
-    {
-        try
-        {
-            command();
-        }
-        catch (Exception ex)
-        {
-            this.LogService.Error(errorMessage, ex);
-        }
-
-        Environment.Exit(0);
     }
 
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
@@ -150,14 +116,8 @@ public partial class App : Application
                 this.AutoStartService.SetAutoStart(true);
             }
 
-            // Hook and interception first: even if a UI handler throws during LoadHotkeys,
-            // hotkeys and the driver keep working.
+            // Hook first: even if a UI handler throws during LoadHotkeys, hotkeys keep working.
             this.KeyboardHookService.Start();
-            if (InterceptionService.IsDriverActive())
-            {
-                this.InterceptionService.Start();
-            }
-
             this.MidiService.Start();
             this.HotkeyManagerService.LoadHotkeys(configuration.Configuration.Hotkeys);
 
@@ -165,72 +125,10 @@ public partial class App : Application
             this.PadDeckBridge.Start();
 
             (this.MainWindow as MainWindow)?.UpdateStatusDisplay();
-            await this.CheckAndPromptDriverInstallAsync();
         }
         catch (Exception ex)
         {
             this.LogService.Fatal("Kritischer Fehler beim Laden der Konfiguration", ex);
         }
-    }
-
-    private async Task CheckAndPromptDriverInstallAsync()
-    {
-        if (InterceptionService.IsDriverInstalled())
-        {
-            // Check IsRunning first: IsDriverActive (InputInterceptor.Initialize) must not be
-            // called while the interception hook is already running.
-            if (!this.InterceptionService.IsRunning && !InterceptionService.IsDriverActive())
-            {
-                await this.ShowDialogAsync(
-                    "Neustart erforderlich",
-                    "Der Interception-Treiber ist installiert, aber noch nicht aktiv. " +
-                    "Bitte starte den Computer neu, damit der Treiber geladen wird.");
-            }
-
-            return;
-        }
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.MainWindow?.Content.XamlRoot,
-            Title = "Kernel-Mode Treiber nicht installiert",
-            Content = "Der Interception-Treiber ist nicht installiert. Dieser Treiber wird fuer die Kernel-Mode "
-                + "Tastatur-Injektion benoetigt (Tasten ohne LLKHF_INJECTED-Flag senden).\n\n"
-                + "Moechtest du den Treiber jetzt installieren? (Erfordert Administrator-Rechte)",
-            PrimaryButtonText = "Installieren",
-            CloseButtonText = "Spaeter",
-            DefaultButton = ContentDialogButton.Primary,
-        };
-
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
-        {
-            return;
-        }
-
-        var (success, message) = await InterceptionService.InstallDriverAsync();
-        if (success && InterceptionService.IsDriverActive())
-        {
-            this.InterceptionService.Start();
-        }
-
-        await this.ShowDialogAsync(success ? "Installation erfolgreich" : "Installation fehlgeschlagen", message);
-        (this.MainWindow as MainWindow)?.UpdateStatusDisplay();
-    }
-
-    private async Task ShowDialogAsync(string title, string message)
-    {
-        if (this.MainWindow?.Content.XamlRoot is null)
-        {
-            return;
-        }
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.MainWindow.Content.XamlRoot,
-            Title = title,
-            Content = message,
-            CloseButtonText = "OK",
-        };
-        await dialog.ShowAsync();
     }
 }

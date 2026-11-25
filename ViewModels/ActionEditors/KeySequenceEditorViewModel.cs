@@ -10,7 +10,7 @@ namespace HotKeyManager.ViewModels.ActionEditors;
 
 /// <summary>
 /// Editor for key sequences: single key capture (simple mode) and KeyDown/KeyUp recording
-/// (advanced mode), including the kernel injection option.
+/// (advanced mode).
 /// Hook events arrive on the hook thread and are marshalled to the UI thread.
 /// </summary>
 public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
@@ -31,10 +31,6 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
 
     [ObservableProperty]
     private bool isAdvancedMode;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsKernelWarningVisible))]
-    private bool useKernelInjection;
 
     [ObservableProperty]
     private string addKeyButtonText = CaptureKeyText;
@@ -74,15 +70,6 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
     /// <summary>The keys of the sequence in playback order.</summary>
     public ObservableCollection<KeyStroke> KeyStrokes { get; } = new();
 
-    /// <summary>True when kernel injection is selected but the Interception driver is not active.</summary>
-    /// <remarks>
-    /// While the InterceptionService runs, its state is read directly: IsDriverActive() calls
-    /// InputInterceptor.Initialize, which would create a second Interception context
-    /// and crash with a native access violation.
-    /// </remarks>
-    public bool IsKernelWarningVisible => this.UseKernelInjection
-        && !(App.Current.InterceptionService.IsRunning || InterceptionService.IsDriverActive());
-
     /// <inheritdoc />
     public override void LoadFrom(ActionBase action)
     {
@@ -99,15 +86,10 @@ public partial class KeySequenceEditorViewModel : ActionEditorViewModelBase
 
         // Separate KeyDown/KeyUp entries can only come from the advanced mode.
         this.IsAdvancedMode = keySequence.Keys.Any(k => k.EventType != KeyEventType.KeyPress);
-        this.UseKernelInjection = keySequence.UseKernelInjection;
     }
 
     /// <inheritdoc />
-    public override ActionBase BuildAction() => new KeySequenceAction
-    {
-        Keys = this.KeyStrokes.ToList(),
-        UseKernelInjection = this.UseKernelInjection
-    };
+    public override ActionBase BuildAction() => new KeySequenceAction { Keys = this.KeyStrokes.ToList() };
 
     /// <inheritdoc />
     public override void CancelCapture()

@@ -6,24 +6,12 @@ using HotKeyManager.Services.Midi;
 namespace HotKeyManager.Services;
 
 /// <summary>
-/// Runs actions. Decides where keys and text go (focused window, kernel driver, background window)
+/// Runs actions. Decides where keys and text go (focused window or background window)
 /// and hands the actual work to the classes in Services/Execution.
 /// </summary>
 public class ActionExecutor
 {
     private readonly WebhookSender webhookSender = new();
-    private readonly InterceptionService? interceptionService;
-
-    /// <summary>Executor without kernel-mode injection.</summary>
-    public ActionExecutor()
-    {
-    }
-
-    /// <summary>Executor that can inject keys through the Interception driver.</summary>
-    public ActionExecutor(InterceptionService interceptionService)
-    {
-        this.interceptionService = interceptionService;
-    }
 
     /// <summary>Runs an action against the focused window.</summary>
     public Task ExecuteAsync(ActionBase action) => this.ExecuteAsync(action, WindowTargetMode.None, null, null);
@@ -45,7 +33,7 @@ public class ActionExecutor
                 await this.ExecuteMacroAsync(macro, target);
                 break;
             case KeySequenceAction keySequence:
-                await this.PlayKeySequenceAsync(keySequence, target);
+                await PlayKeySequenceAsync(keySequence, target);
                 break;
             case SendTextAction sendText:
                 await TypeTextAsync(sendText, target);
@@ -86,22 +74,16 @@ public class ActionExecutor
         }
     }
 
-    private async Task PlayKeySequenceAsync(KeySequenceAction action, Target target)
+    private static async Task PlayKeySequenceAsync(KeySequenceAction action, Target target)
     {
-        if (target.IsBackgroundWindow)
+        if (!target.IsBackgroundWindow)
         {
-            if (target.FindWindow() is { } windowHandle)
-            {
-                await KeySequencePlayer.PlayAsync(action, new WindowKeySink(windowHandle));
-            }
-
-            return;
+            await KeySequencePlayer.PlayAsync(action, ForegroundKeySink.Instance);
         }
-
-        IKeySink sink = action.UseKernelInjection && this.interceptionService is { CanSendKernel: true } interception
-            ? new KernelKeySink(interception)
-            : ForegroundKeySink.Instance;
-        await KeySequencePlayer.PlayAsync(action, sink);
+        else if (target.FindWindow() is { } windowHandle)
+        {
+            await KeySequencePlayer.PlayAsync(action, new WindowKeySink(windowHandle));
+        }
     }
 
     private static async Task TypeTextAsync(SendTextAction action, Target target)

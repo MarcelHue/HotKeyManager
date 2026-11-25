@@ -8,14 +8,6 @@
     <StackPanel Spacing="12">
         <CheckBox Content="Erweiterter Modus (separate KeyDown/KeyUp für Kombinationen)"
                   IsChecked="{x:Bind ViewModel.IsAdvancedMode, Mode=TwoWay}" />
-        <CheckBox Content="Kernel-Mode Injektion (für Apps die synthetische Tasten filtern)"
-                  IsChecked="{x:Bind ViewModel.UseKernelInjection, Mode=TwoWay}" />
-
-        <InfoBar Severity="Warning"
-                 Title="Treiber nicht aktiv"
-                 Message="Der Interception-Treiber ist nicht aktiv. Kernel-Mode Injektion ist nicht verfügbar."
-                 IsOpen="{x:Bind ViewModel.IsKernelWarningVisible, Mode=OneWay}"
-                 IsClosable="False" />
 
         <Grid ColumnSpacing="8">
             <Grid.ColumnDefinitions>

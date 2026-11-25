@@ -116,7 +116,7 @@ public partial class SimpleMacroForm : ObservableObject
     }
 
     private static bool IsSingleKeyPress(ActionBase step) =>
-        step is KeySequenceAction { UseKernelInjection: false, Keys: [{ EventType: KeyEventType.KeyPress }] };
+        step is KeySequenceAction { Keys: [{ EventType: KeyEventType.KeyPress }] };
 
     private static void SetKey(KeyCaptureField field, KeySequenceAction? block)
     {

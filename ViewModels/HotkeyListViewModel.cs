@@ -206,7 +206,7 @@ public partial class HotkeyListViewModel : ObservableObject
             return;
         }
 
-        // Same execution as a real trigger, including kernel injection and window targeting.
+        // Same execution as a real trigger, including window targeting.
         await this.actionExecutor.ExecuteAsync(
             hotkey.Action,
             hotkey.WindowMode,
